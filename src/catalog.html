@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Каталог - Галерея Искусств</title>
+    <meta name="description" content="Каталог картин" />
+    <meta name="keywords" content="Каталог, картины, искусство" />
+    <link rel="stylesheet" href="static/css/styles.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="container">
+        <a href="index.html" class="logo">
+          <img src="static/images/main_logo.svg" alt="ARTLUMEN logo" />
+        </a>
+        <nav class="nav">
+          <a href="catalog.html" class="nav-link">Каталог</a>
+          <a href="#" class="nav-link">Мероприятия</a>
+          <a href="index.html" class="nav-link">Корзина</a>
+          <a href="index.html" class="nav-link">Войти</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Catalog Header -->
+    <section class="catalog-header">
+      <div class="container">
+        <h1>Каталог картин</h1>
+      </div>
+    </section>
+
+    <!-- Filters -->
+    <section class="filters">
+      <div class="container">
+        <form class="filter-form">
+          <div class="filter-group">
+            <label for="style">Стиль</label>
+            <select id="style" name="style">
+              <option value="">Все стили</option>
+              <option value="realism">Реализм</option>
+              <option value="impressionism">Импрессионизм</option>
+              <option value="abstract">Абстракционизм</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="price">Цена</label>
+            <select id="price" name="price">
+              <option value="">Любая цена</option>
+              <option value="0-5000">До 5000 ₽</option>
+              <option value="5000-10000">5000 - 10000 ₽</option>
+              <option value="10000+">Более 10000 ₽</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="size">Размер</label>
+            <select id="size" name="size">
+              <option value="">Любой размер</option>
+              <option value="small">Маленький</option>
+              <option value="medium">Средний</option>
+              <option value="large">Большой</option>
+            </select>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="gallery">
+      <div class="container">
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img
+              src="static/images/photo_2025-06-04_20-43-46.jpg"
+              alt="conclav"
+            />
+            <h3>conclav</h3>
+            <div class="item-details">
+              <p>9000 ₽</p>
+              <p>100x150 см</p>
+              <p>Власова А.А.</p>
+              <p>Академизм</p>
+              <button class="btn-order">Заказать</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div>
+          <h3>Контактная информация</h3>
+          <a href="#" class="footer-link">МОСКВА, литейный проспект 4</a>
+        </div>
+        <div>
+          <a href="#" class="footer-link">e-mail</a>
+        </div>
+        <div>
+          <a href="#" class="footer-link">instagram</a>
+          <a href="#" class="footer-link">telegram</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
