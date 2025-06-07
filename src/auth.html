@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Авторизация - Галерея Искусств</title>
+    <meta name="description" content="Авторизация в Галерее Искусств" />
+    <meta name="keywords" content="Авторизация, Галерея Искусств" />
+    <link rel="stylesheet" href="static/css/styles.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="/js/auth.js" defer></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header">
+      <div class="container">
+        <a href="index.html" class="logo">
+          <img src="static/svg/main_logo.svg" alt="ARTLUMEN logo" />
+        </a>
+        <nav class="nav">
+          <a href="/catalog" class="nav-link">Каталог</a>
+          <a href="#" class="nav-link">Мероприятия</a>
+          <a href="/" class="nav-link">Корзина</a>
+          <a href="/auth" class="nav-link">Войти</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Auth Section -->
+    <section class="auth-section">
+      <div class="container">
+        <div class="auth-container">
+          <!-- Login Form -->
+          <div class="auth-form" id="login-form">
+            <h2>Вход</h2>
+            <form
+              hx-post="/api/auth/login"
+              hx-target="#auth-message"
+              hx-swap="innerHTML"
+              hx-on::after-request="if(event.detail.successful) window.location.href='/'"
+            >
+              <div class="form-group">
+                <label for="login-email">Email</label>
+                <input type="email" id="login-email" name="email" required />
+              </div>
+              <div class="form-group">
+                <label for="login-password">Пароль</label>
+                <input
+                  type="password"
+                  id="login-password"
+                  name="password"
+                  required
+                />
+              </div>
+              <button type="submit" class="registration-button">Войти</button>
+            </form>
+            <p class="auth-switch">
+              Нет аккаунта?
+              <a href="#" class="toggle-form">Зарегистрироваться</a>
+            </p>
+          </div>
+
+          <!-- Register Form -->
+          <div class="auth-form" id="register-form" style="display: none">
+            <h2>Регистрация</h2>
+            <form
+              hx-post="/api/auth/register"
+              hx-target="#auth-message"
+              hx-on:afterOnLoad="onRegisterSuccess(event)"
+            >
+              <div class="form-group">
+                <label for="register-first-name"
+                  >Имя <span style="color: red">*</span></label
+                >
+                <input
+                  type="text"
+                  id="register-first-name"
+                  name="first_name"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="register-last-name"
+                  >Фамилия <span style="color: red">*</span></label
+                >
+                <input
+                  type="text"
+                  id="register-last-name"
+                  name="last_name"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="register-email"
+                  >Email <span style="color: red">*</span></label
+                >
+                <input type="email" id="register-email" name="email" required />
+              </div>
+              <div class="form-group">
+                <label for="register-password"
+                  >Пароль <span style="color: red">*</span></label
+                >
+                <input
+                  type="password"
+                  id="register-password"
+                  name="password"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="register-phone">Телефон</label>
+                <input type="text" id="register-phone" name="phone" />
+              </div>
+              <button type="submit" class="registration-button">
+                Зарегистрироваться
+              </button>
+            </form>
+            <p class="auth-switch">
+              Уже есть аккаунт? <a href="#" class="toggle-form">Войти</a>
+            </p>
+          </div>
+
+          <!-- Message Container -->
+          <div id="auth-message"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div>
+          <h3>Контактная информация</h3>
+          <a href="#" class="footer-link">МОСКВА, литейный проспект 4</a>
+        </div>
+        <div>
+          <a href="#" class="footer-link">e-mail</a>
+        </div>
+        <div>
+          <a href="#" class="footer-link">instagram</a>
+          <a href="#" class="footer-link">telegram</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

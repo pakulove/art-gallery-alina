@@ -2,11 +2,18 @@ const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const fs = require("fs");
 const path = require("path");
+const cookieParser = require("cookie-parser");
 
 // Create Express app
 const app = express();
 app.use(express.json());
-app.use(express.static("src"));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+
+// Serve static files
+app.use(express.static(path.join(__dirname, "src")));
+app.use("/static", express.static(path.join(__dirname, "src/static")));
+app.use("/js", express.static(path.join(__dirname, "src/js")));
 
 // Set view engine
 app.set("view engine", "html");
@@ -19,6 +26,22 @@ app.engine("html", (filePath, options, callback) => {
     }
     return callback(null, rendered);
   });
+});
+
+// Middleware для проверки авторизации
+app.use(async (req, res, next) => {
+  if (req.cookies.userId) {
+    try {
+      const users = await db.read("users", { id_u: req.cookies.userId });
+      if (users.length > 0) {
+        req.user = users[0];
+        res.locals.user = users[0];
+      }
+    } catch (err) {
+      res.status(500).send("Internal Server Error");
+    }
+  }
+  next();
 });
 
 // Database wrapper class
@@ -90,7 +113,7 @@ class Database {
     });
   }
 
-  async read(table, conditions = {}, columns = "*") {
+  async read(table, conditions = {}, columns = "*", join = "") {
     let whereClause = "";
     const values = [];
 
@@ -132,7 +155,7 @@ class Database {
     }
 
     return new Promise((resolve, reject) => {
-      const query = `SELECT ${columns} FROM ${table} ${whereClause}`;
+      const query = `SELECT ${columns} FROM ${table} ${join} ${whereClause}`;
       this.db.all(query, values, (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
@@ -174,8 +197,36 @@ class Database {
   }
 }
 
+// Routes for HTML files
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/src/index.html");
+  console.log("GET / - Serving index.html");
+  res.sendFile(path.join(__dirname, "src", "index.html"));
+});
+
+app.get("/partials/header.html", (req, res) => {
+  console.log("GET /partials/header.html - Serving header partial");
+  res.sendFile(path.join(__dirname, "src", "partials", "header.html"));
+});
+
+app.get("/catalog", (req, res) => {
+  console.log("GET /catalog - Serving catalog.html");
+  res.sendFile(path.join(__dirname, "src", "catalog.html"));
+});
+
+app.get("/auth", (req, res) => {
+  console.log("GET /auth - Serving auth.html");
+  res.sendFile(path.join(__dirname, "src", "auth.html"));
+});
+
+app.get("/profile", (req, res) => {
+  console.log("GET /profile - Checking auth");
+  const userId = req.cookies.userId;
+  if (!userId) {
+    console.log("No userId cookie, redirecting to auth");
+    return res.redirect("/auth");
+  }
+  console.log("User authenticated, serving profile.html");
+  res.sendFile(path.join(__dirname, "src", "profile.html"));
 });
 
 // Initialize database
@@ -226,8 +277,23 @@ app.delete("/api/:table", async (req, res) => {
 
 // Painting routes
 app.get("/api/painting", async (req, res) => {
+  console.log("GET /api/painting - Fetching paintings");
   try {
     const paintings = await db.read("painting", req.query);
+    console.log("Found paintings:", paintings.length);
+
+    // Если это запрос для select, возвращаем options
+    if (req.headers["hx-target"] === "painting-select") {
+      console.log("Returning select options");
+      let html = '<option value="">Выберите картину</option>';
+      for (const painting of paintings) {
+        html += `<option value="${painting.id_p}">${painting.title}</option>`;
+      }
+      res.set("Content-Type", "text/html");
+      return res.send(html);
+    }
+
+    // Иначе возвращаем карточки картин
     const templatePath = path.join(
       __dirname,
       "src",
@@ -255,12 +321,16 @@ app.get("/api/painting", async (req, res) => {
 
 // Reviews route
 app.get("/api/reviews", async (req, res) => {
+  console.log("GET /api/reviews - Fetching reviews");
   try {
     const reviews = await db.read(
       "review",
       req.query,
-      "review.*, users.first_name, users.last_name"
+      "review.*, users.first_name, users.last_name",
+      "LEFT JOIN users ON review.id_u = users.id_u"
     );
+    console.log("Found reviews:", reviews.length);
+
     const templatePath = path.join(
       __dirname,
       "src",
@@ -286,8 +356,144 @@ app.get("/api/reviews", async (req, res) => {
   }
 });
 
+// Auth routes
+app.post("/api/auth/register", async (req, res) => {
+  console.log("POST /api/auth/register - Attempting registration");
+  try {
+    const { first_name, last_name, email, password } = req.body;
+    console.log("Registration data:", { first_name, last_name, email });
+
+    // Проверяем, существует ли пользователь
+    const existingUser = await db.read("users", { email });
+    if (existingUser.length > 0) {
+      console.log("User already exists:", email);
+      return res
+        .status(400)
+        .send(
+          '<div class="error">Пользователь с таким email уже существует</div>'
+        );
+    }
+
+    // Создаем нового пользователя
+    const userId = await db.create("users", {
+      first_name,
+      last_name,
+      email,
+      password,
+    });
+    console.log("User created successfully, id:", userId);
+
+    res.send(
+      '<div class="success">Регистрация успешна! Теперь вы можете войти.</div>'
+    );
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(500).send('<div class="error">Ошибка при регистрации</div>');
+  }
+});
+
+app.post("/api/auth/login", async (req, res) => {
+  console.log("POST /api/auth/login - Attempting login");
+  try {
+    const { email, password } = req.body;
+    console.log("Login attempt for:", email);
+
+    // Ищем пользователя
+    const users = await db.read("users", { email, password });
+    console.log(
+      "Login query result:",
+      users.length > 0 ? "User found" : "User not found"
+    );
+
+    if (users.length === 0) {
+      return res
+        .status(400)
+        .send('<div class="error">Неверный email или пароль</div>');
+    }
+
+    // Устанавливаем куки с ID пользователя
+    res.cookie("userId", users[0].id_u, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 часа
+    });
+    console.log("Login successful, cookie set for user:", users[0].id_u);
+
+    res.send('<div class="success">Вход выполнен успешно!</div>');
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).send('<div class="error">Ошибка при входе</div>');
+  }
+});
+
+// Auth check endpoint
+app.get("/api/auth/check", (req, res) => {
+  console.log("GET /api/auth/check - Checking auth status");
+  const isAuthenticated = !!req.cookies.userId;
+  console.log("Auth status:", isAuthenticated);
+  res.json({ authenticated: isAuthenticated });
+});
+
+// Review routes
+app.post("/api/reviews", async (req, res) => {
+  console.log("POST /api/reviews - Attempting to create review");
+  try {
+    const userId = req.cookies.userId;
+    console.log("Review request from user:", userId);
+
+    if (!userId) {
+      console.log("No userId cookie, unauthorized");
+      return res
+        .status(401)
+        .send('<div class="error">Необходимо авторизоваться</div>');
+    }
+
+    const { painting_id, comment } = req.body;
+    console.log("Review data:", { painting_id, comment });
+
+    if (!painting_id || !comment) {
+      console.log("Missing required fields");
+      return res
+        .status(400)
+        .send('<div class="error">Все поля обязательны</div>');
+    }
+
+    const reviewId = await db.create("review", {
+      id_p: painting_id,
+      id_u: userId,
+      comment,
+      review_date: new Date().toISOString(),
+    });
+    console.log("Review created successfully, id:", reviewId);
+
+    res.send('<div class="success">Отзыв успешно добавлен!</div>');
+  } catch (err) {
+    console.error("Error creating review:", err);
+    res
+      .status(500)
+      .send('<div class="error">Ошибка при добавлении отзыва</div>');
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
+function onRegisterSuccess(event) {
+  if (
+    event.detail.xhr &&
+    event.detail.xhr.responseText.includes("Регистрация успешна")
+  ) {
+    // Переключаем на форму входа
+    toggleForms();
+    // Очищаем поля регистрации
+    document.getElementById("register-first-name").value = "";
+    document.getElementById("register-last-name").value = "";
+    document.getElementById("register-email").value = "";
+    document.getElementById("register-password").value = "";
+    document.getElementById("register-phone").value = "";
+    // Показываем сообщение
+    document.getElementById("auth-message").className = "success";
+  }
+}

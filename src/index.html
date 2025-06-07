@@ -4,25 +4,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Галерея Искусств</title>
-    <meta name="description" content="Page 1" />
-    <meta name="keywords" content="Page 1" />
+    <meta name="description" content="Галерея Искусств" />
+    <meta name="keywords" content="Галерея Искусств" />
     <link rel="stylesheet" href="static/css/styles.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   </head>
   <body>
     <!-- Header -->
-    <header class="header">
-      <div class="container header-container">
-        <a href="index.html" class="logo">
-          <img src="static/svg/main_logo.svg" alt="ARTLUMEN logo" />
-        </a>
-        <nav class="nav">
-          <a href="catalog.html" class="nav-link">Каталог</a>
-          <a href="#" class="nav-link">Мероприятия</a>
-          <a href="#" class="nav-link">Корзина</a>
-          <a href="#" class="nav-link">Войти</a>
-        </nav>
-      </div>
-    </header>
+    <div
+      id="header-container"
+      hx-get="/partials/header.html"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+      hx-target="this"
+      hx-indicator="#header-container"
+    ></div>
 
     <!-- Hero -->
     <section class="hero">
@@ -141,7 +137,48 @@
           hx-trigger="load"
           hx-swap="innerHTML"
         ></div>
-        <a href="#" class="registration-button">Оставить отзыв</a>
+
+        <!-- Review Form -->
+        <div id="review-form">
+          <h3>Оставить отзыв</h3>
+          <!-- Форма для неавторизованных -->
+          <div id="auth-required" class="auth-required">
+            <p>
+              Чтобы оставить отзыв, необходимо <a href="/auth">войти</a> или
+              <a href="/auth">зарегистрироваться</a>
+            </p>
+          </div>
+          <!-- Форма для авторизованных -->
+          <div id="review-form-content" style="display: none">
+            <form hx-post="/api/reviews" hx-target="#review-message">
+              <div class="form-group">
+                <label for="painting-select">Выберите картину</label>
+                <select
+                  id="painting-select"
+                  name="painting_id"
+                  required
+                  hx-get="/api/painting"
+                  hx-trigger="load"
+                  hx-target="this"
+                >
+                  <option value="">Загрузка картин...</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="review-comment">Ваш отзыв</label>
+                <textarea
+                  id="review-comment"
+                  name="comment"
+                  required
+                ></textarea>
+              </div>
+              <button type="submit" class="registration-button">
+                Отправить отзыв
+              </button>
+            </form>
+            <div id="review-message"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -172,5 +209,102 @@
         </div>
       </div>
     </footer>
+
+    <script>
+      // Функция для обновления состояния авторизации
+      function updateAuthState() {
+        console.log("=== AUTH STATE UPDATE ===");
+        const isAuthenticated = document.cookie.includes("userId=");
+        console.log("Auth state:", isAuthenticated);
+        console.log("Cookies:", document.cookie);
+
+        // Обновляем хедер
+        const authLink = document.querySelector('[data-auth-element="login"]');
+        const profileLink = document.querySelector(
+          '[data-auth-element="profile"]'
+        );
+
+        if (authLink && profileLink) {
+          console.log("Found auth elements, updating display");
+          if (isAuthenticated) {
+            console.log("User is authenticated, showing profile link");
+            authLink.style.display = "none";
+            profileLink.style.display = "block";
+          } else {
+            console.log("User is not authenticated, showing login link");
+            authLink.style.display = "block";
+            profileLink.style.display = "none";
+          }
+        } else {
+          console.log("Auth elements not found");
+        }
+
+        // Обновляем форму отзыва
+        const authRequired = document.getElementById("auth-required");
+        const reviewFormContent = document.getElementById(
+          "review-form-content"
+        );
+
+        if (authRequired && reviewFormContent) {
+          console.log("Found review form elements, updating display");
+          if (isAuthenticated) {
+            console.log("User is authenticated, showing review form");
+            authRequired.style.display = "none";
+            reviewFormContent.style.display = "block";
+          } else {
+            console.log(
+              "User is not authenticated, showing auth required message"
+            );
+            authRequired.style.display = "block";
+            reviewFormContent.style.display = "none";
+          }
+        } else {
+          console.log("Review form elements not found");
+        }
+        console.log("=== END AUTH STATE UPDATE ===");
+      }
+
+      // Обновляем состояние при загрузке страницы
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("=== DOM LOADED ===");
+        // Не обновляем состояние здесь, так как хедер еще не загружен
+      });
+
+      // Обновляем состояние после загрузки хедера
+      document.addEventListener("htmx:afterSwap", function (evt) {
+        console.log("=== HTMX AFTER SWAP ===");
+        console.log("Target ID:", evt.detail.target.id);
+        if (evt.detail.target.id === "header-container") {
+          console.log("Header loaded, updating auth state");
+          updateAuthState();
+        }
+      });
+
+      // Обновляем состояние при успешной авторизации
+      document.addEventListener("htmx:afterRequest", function (evt) {
+        console.log("=== HTMX AFTER REQUEST ===");
+        console.log("Path:", evt.detail.pathInfo.requestPath);
+        console.log("Success:", evt.detail.successful);
+        console.log("Response:", evt.detail.xhr.response);
+
+        if (
+          evt.detail.pathInfo.requestPath === "/api/auth/login" &&
+          evt.detail.successful
+        ) {
+          console.log("Login successful, updating auth state");
+          // Обновляем хедер через HTMX
+          const headerContainer = document.getElementById("header-container");
+          if (headerContainer) {
+            console.log("Refreshing header via HTMX");
+            htmx.ajax("GET", "/partials/header.html", {
+              target: "#header-container",
+              swap: "innerHTML",
+            });
+          }
+          // Обновляем состояние после небольшой задержки
+          setTimeout(updateAuthState, 100);
+        }
+      });
+    </script>
   </body>
 </html>
