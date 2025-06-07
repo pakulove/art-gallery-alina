@@ -253,6 +253,39 @@ app.get("/api/painting", async (req, res) => {
   }
 });
 
+// Reviews route
+app.get("/api/reviews", async (req, res) => {
+  try {
+    const reviews = await db.read(
+      "review",
+      req.query,
+      "review.*, users.first_name, users.last_name"
+    );
+    const templatePath = path.join(
+      __dirname,
+      "src",
+      "partials",
+      "review-card.html"
+    );
+    const template = fs.readFileSync(templatePath, "utf8");
+
+    let html = "";
+    for (const review of reviews) {
+      let cardHtml = template;
+      for (const [key, value] of Object.entries(review)) {
+        cardHtml = cardHtml.replace(new RegExp(`{{${key}}}`, "g"), value || "");
+      }
+      html += cardHtml;
+    }
+
+    res.set("Content-Type", "text/html");
+    res.send(html);
+  } catch (err) {
+    console.error("Error in /api/reviews:", err);
+    res.status(500).send("Error rendering template");
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

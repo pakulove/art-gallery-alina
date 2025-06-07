@@ -135,20 +135,12 @@
     <section class="reviews">
       <div class="container">
         <h2 class="events-title">REVIEWS</h2>
-        <div class="review-card">
-          <h3 class="review-author">Анна</h3>
-          <p class="program-text">
-            Прекрасная картина, быстрая доставка, спасибо!
-          </p>
-        </div>
-        <div class="review-card">
-          <h3 class="review-author">Михаил</h3>
-          <p class="program-text">Радуюсь картине каждый день, спасибо!</p>
-        </div>
-        <div class="review-card">
-          <h3 class="review-author">Марина</h3>
-          <p class="program-text">Всё замечательно!</p>
-        </div>
+        <div
+          id="reviews-container"
+          hx-get="/api/reviews"
+          hx-trigger="load"
+          hx-swap="innerHTML"
+        ></div>
         <a href="#" class="registration-button">Оставить отзыв</a>
       </div>
     </section>
