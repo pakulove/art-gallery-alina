@@ -7,6 +7,33 @@
     <meta name="description" content="Каталог картин" />
     <meta name="keywords" content="Каталог, картины, искусство" />
     <link rel="stylesheet" href="static/css/styles.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        console.log("HTMX loaded");
+        htmx.logAll();
+
+        // Добавляем обработчики для отладки
+        htmx.on("htmx:beforeRequest", function (evt) {
+          console.log("HTMX request headers:", evt.detail.headers);
+          console.log("HTMX request path:", evt.detail.path);
+          console.log("HTMX request method:", evt.detail.method);
+        });
+
+        htmx.on("htmx:afterRequest", function (evt) {
+          console.log("HTMX response status:", evt.detail.xhr.status);
+          console.log(
+            "HTMX response headers:",
+            evt.detail.xhr.getAllResponseHeaders()
+          );
+          console.log("HTMX response text:", evt.detail.xhr.responseText);
+        });
+
+        htmx.on("htmx:responseError", function (evt) {
+          console.error("HTMX error:", evt.detail.error);
+        });
+      });
+    </script>
   </head>
   <body>
     <!-- Header -->
@@ -34,14 +61,22 @@
     <!-- Filters -->
     <section class="filters">
       <div class="container">
-        <form class="filter-form">
+        <form
+          class="filter-form"
+          hx-get="/api/painting"
+          hx-target="#gallery-grid"
+          hx-trigger="change"
+          hx-headers='{"Accept": "text/html", "HX-Request": "true"}'
+        >
           <div class="filter-group">
             <label for="style">Стиль</label>
             <select id="style" name="style">
               <option value="">Все стили</option>
-              <option value="realism">Реализм</option>
-              <option value="impressionism">Импрессионизм</option>
-              <option value="abstract">Абстракционизм</option>
+              <option value="Портрет">Портрет</option>
+              <option value="Абстракция">Абстракция</option>
+              <option value="Пейзаж">Пейзаж</option>
+              <option value="Натюрморт">Натюрморт</option>
+              <option value="Смешанная техника">Смешанная техника</option>
             </select>
           </div>
           <div class="filter-group">
@@ -66,23 +101,18 @@
       </div>
     </section>
 
+    <!-- Gallery -->
     <section class="gallery">
       <div class="container">
-        <div class="gallery-grid">
-          <div class="gallery-item">
-            <img
-              src="static/images/photo_2025-06-04_20-43-46.jpg"
-              alt="conclav"
-            />
-            <h3>conclav</h3>
-            <div class="item-details">
-              <p>9000 ₽</p>
-              <p>100x150 см</p>
-              <p>Власова А.А.</p>
-              <p>Академизм</p>
-              <button class="btn-order">Заказать</button>
-            </div>
-          </div>
+        <div
+          id="gallery-grid"
+          class="gallery-grid"
+          hx-get="/api/painting"
+          hx-trigger="load"
+          hx-swap="innerHTML"
+          hx-headers='{"Accept": "text/html", "HX-Request": "true"}'
+        >
+          <!-- Gallery items will be loaded here -->
         </div>
       </div>
     </section>
