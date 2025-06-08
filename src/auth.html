@@ -8,44 +8,90 @@
     <meta name="keywords" content="Авторизация, Галерея Искусств" />
     <link rel="stylesheet" href="static/css/styles.css" />
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="/js/auth.js" defer></script>
   </head>
   <body>
     <!-- Header -->
-    <header class="header">
-      <div class="container">
-        <a href="index.html" class="logo">
-          <img src="static/svg/main_logo.svg" alt="ARTLUMEN logo" />
-        </a>
-        <nav class="nav">
-          <a href="/catalog" class="nav-link">Каталог</a>
-          <a href="#" class="nav-link">Мероприятия</a>
-          <a href="/" class="nav-link">Корзина</a>
-          <a href="/auth" class="nav-link">Войти</a>
-        </nav>
-      </div>
-    </header>
+    <div id="header" hx-get="/partials/header.html" hx-trigger="load"></div>
 
     <!-- Auth Section -->
     <section class="auth-section">
       <div class="container">
         <div class="auth-container">
-          <h2 class="auth-title">Вход</h2>
-          <form id="login-form" onsubmit="return handleLogin(event)">
-            <div class="form-group">
-              <label for="email">Email</label>
-              <input type="email" id="email" name="email" required />
-            </div>
-            <div class="form-group">
-              <label for="password">Пароль</label>
-              <input type="password" id="password" name="password" required />
-            </div>
-            <button type="submit" class="registration-button">Войти</button>
-          </form>
-          <div id="auth-message"></div>
-          <p class="auth-text">
-            Нет аккаунта? <a href="/auth?register=true">Зарегистрироваться</a>
-          </p>
+          <!-- Login Form -->
+          <div id="login-form-container">
+            <h2 class="auth-title">Вход</h2>
+            <form id="login-form" onsubmit="return handleLogin(event)">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" required />
+              </div>
+              <div class="form-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" required />
+              </div>
+              <button type="submit" class="registration-button">Войти</button>
+            </form>
+            <div id="auth-message"></div>
+            <p class="auth-text">
+              Нет аккаунта?
+              <a href="#" onclick="toggleForms()">Зарегистрироваться</a>
+            </p>
+          </div>
+
+          <!-- Register Form -->
+          <div id="register-form-container" style="display: none">
+            <h2 class="auth-title">Регистрация</h2>
+            <form id="register-form" onsubmit="return handleRegister(event)">
+              <div class="form-group">
+                <label for="register-first-name">Имя</label>
+                <input
+                  type="text"
+                  id="register-first-name"
+                  name="first_name"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="register-last-name">Фамилия</label>
+                <input
+                  type="text"
+                  id="register-last-name"
+                  name="last_name"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="register-email">Email</label>
+                <input type="email" id="register-email" name="email" required />
+              </div>
+              <div class="form-group">
+                <label for="register-password">Пароль</label>
+                <input
+                  type="password"
+                  id="register-password"
+                  name="password"
+                  required
+                />
+              </div>
+              <div class="form-group">
+                <label for="register-phone">Телефон (необязательно)</label>
+                <input
+                  type="tel"
+                  id="register-phone"
+                  name="phone"
+                  pattern="[0-9]{11}"
+                  placeholder="89991234567"
+                />
+              </div>
+              <button type="submit" class="registration-button">
+                Зарегистрироваться
+              </button>
+            </form>
+            <div id="register-message"></div>
+            <p class="auth-text">
+              Уже есть аккаунт? <a href="#" onclick="toggleForms()">Войти</a>
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -68,6 +114,21 @@
     </footer>
 
     <script>
+      function toggleForms() {
+        const loginContainer = document.getElementById("login-form-container");
+        const registerContainer = document.getElementById(
+          "register-form-container"
+        );
+
+        if (loginContainer.style.display === "none") {
+          loginContainer.style.display = "block";
+          registerContainer.style.display = "none";
+        } else {
+          loginContainer.style.display = "none";
+          registerContainer.style.display = "block";
+        }
+      }
+
       async function handleLogin(event) {
         event.preventDefault();
         const form = event.target;
@@ -83,7 +144,7 @@
               email: form.email.value,
               password: form.password.value,
             }),
-            credentials: "include", // Важно для работы с куками
+            credentials: "include",
           });
 
           const text = await response.text();
@@ -92,7 +153,6 @@
           if (response.ok) {
             messageDiv.innerHTML = text;
             messageDiv.className = "success";
-            // Редирект на главную
             setTimeout(() => {
               window.location.href = "/";
             }, 1000);
@@ -108,6 +168,185 @@
 
         return false;
       }
+
+      async function handleRegister(event) {
+        event.preventDefault();
+        const form = event.target;
+        const messageDiv = document.getElementById("register-message");
+
+        try {
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              first_name: form.first_name.value,
+              last_name: form.last_name.value,
+              email: form.email.value,
+              password: form.password.value,
+              phone: form.phone.value || null,
+            }),
+          });
+
+          const text = await response.text();
+          console.log("Server response:", text);
+
+          if (response.ok) {
+            messageDiv.innerHTML = text;
+            messageDiv.className = "success";
+            setTimeout(() => {
+              toggleForms();
+            }, 1000);
+          } else {
+            messageDiv.innerHTML = text;
+            messageDiv.className = "error";
+          }
+        } catch (error) {
+          console.error("Register error:", error);
+          messageDiv.textContent = "Ошибка сервера";
+          messageDiv.className = "error";
+        }
+
+        return false;
+      }
+
+      // Проверяем URL параметры при загрузке
+      window.onload = function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("register") === "true") {
+          toggleForms();
+        }
+      };
     </script>
+
+    <style>
+      .auth-section {
+        padding: 100px 0;
+        background-color: #fafafa;
+      }
+
+      .auth-container {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 40px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      .auth-title {
+        font-size: 32px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 30px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      .form-group input:focus {
+        border-color: #1a1a1a;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.1);
+      }
+
+      .registration-button {
+        width: 100%;
+        padding: 16px;
+        background-color: #1a1a1a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .registration-button:hover {
+        background-color: #333;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .auth-text {
+        text-align: center;
+        margin-top: 20px;
+        color: #666;
+      }
+
+      .auth-text a {
+        color: #1a1a1a;
+        text-decoration: none;
+        border-bottom: 2px solid #1a1a1a;
+        transition: all 0.3s ease;
+      }
+
+      .auth-text a:hover {
+        color: #666;
+        border-bottom-color: #666;
+      }
+
+      .success {
+        color: #155724;
+        background-color: #d4edda;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 20px;
+        text-align: center;
+      }
+
+      .error {
+        color: #721c24;
+        background-color: #f8d7da;
+        padding: 10px;
+        border-radius: 4px;
+        margin-top: 20px;
+        text-align: center;
+      }
+
+      #auth-message,
+      #register-message {
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      #auth-message.success,
+      #register-message.success {
+        color: #155724;
+        background-color: #d4edda;
+      }
+
+      #auth-message.error,
+      #register-message.error {
+        color: #721c24;
+        background-color: #f8d7da;
+      }
+    </style>
+    <script src="/js/auth.js"></script>
   </body>
 </html>

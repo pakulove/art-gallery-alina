@@ -12,12 +12,18 @@ console.log("Database path:", path.join(__dirname, "database.sqlite"));
 // Database wrapper class
 class Database {
   constructor(dbPath) {
-    console.log("Initializing database at:", dbPath);
+    console.log("=== DATABASE INITIALIZATION ===");
+    console.log("Database path:", dbPath);
     this.db = new sqlite3.Database(dbPath);
+    console.log("Database connection established");
   }
 
   // CRUD operations
   async create(table, data) {
+    console.log("=== DATABASE CREATE ===");
+    console.log("Table:", table);
+    console.log("Data:", data);
+
     const columns = Object.keys(data).join(", ");
     const placeholders = Object.keys(data)
       .map(() => "?")
@@ -26,14 +32,29 @@ class Database {
 
     return new Promise((resolve, reject) => {
       const query = `INSERT INTO ${table} (${columns}) VALUES (${placeholders})`;
+      console.log("SQL Query:", query);
+      console.log("Values:", values);
+
       this.db.run(query, values, function (err) {
-        if (err) reject(err);
-        else resolve(this.lastID);
+        if (err) {
+          console.error("Database error:", err);
+          console.error("Error stack:", err.stack);
+          reject(err);
+        } else {
+          console.log("Insert successful, lastID:", this.lastID);
+          resolve(this.lastID);
+        }
       });
     });
   }
 
   async read(table, conditions = {}, columns = "*", additionalSQL = "") {
+    console.log("=== DATABASE READ ===");
+    console.log("Table:", table);
+    console.log("Conditions:", conditions);
+    console.log("Columns:", columns);
+    console.log("Additional SQL:", additionalSQL);
+
     let whereClause = "";
     const values = [];
 
@@ -82,15 +103,41 @@ class Database {
       const joinClause = joinMatch ? joinMatch[0] : "";
       const restSQL = additionalSQL.replace(joinClause, "").trim();
 
-      const query = `SELECT ${columns} FROM ${table} ${joinClause} ${whereClause} ${restSQL}`;
+      // Формируем запрос с правильным порядком частей и без лишних пробелов
+      const queryParts = [
+        `SELECT ${columns}`,
+        `FROM ${table}`,
+        joinClause,
+        whereClause,
+        restSQL,
+      ].filter(Boolean); // Удаляем пустые строки
+
+      const query = queryParts.join(" ").replace(/\s+/g, " ").trim();
+
+      console.log("Final SQL Query:", query);
+      console.log("Query values:", values);
+
       this.db.all(query, values, (err, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
+        if (err) {
+          console.error("Database error:", err);
+          console.error("Error stack:", err.stack);
+          console.error("Failed query:", query);
+          console.error("Query values:", values);
+          reject(err);
+        } else {
+          console.log("Query successful, rows:", rows);
+          resolve(rows || []);
+        }
       });
     });
   }
 
   async update(table, data, conditions) {
+    console.log("=== DATABASE UPDATE ===");
+    console.log("Table:", table);
+    console.log("Data:", data);
+    console.log("Conditions:", conditions);
+
     const setClause = Object.keys(data)
       .map((key) => `${key} = ?`)
       .join(", ");
@@ -101,14 +148,27 @@ class Database {
 
     return new Promise((resolve, reject) => {
       const query = `UPDATE ${table} SET ${setClause} WHERE ${whereClause}`;
+      console.log("SQL Query:", query);
+      console.log("Values:", values);
+
       this.db.run(query, values, function (err) {
-        if (err) reject(err);
-        else resolve(this.changes);
+        if (err) {
+          console.error("Database error:", err);
+          console.error("Error stack:", err.stack);
+          reject(err);
+        } else {
+          console.log("Update successful, changes:", this.changes);
+          resolve(this.changes);
+        }
       });
     });
   }
 
   async delete(table, conditions) {
+    console.log("=== DATABASE DELETE ===");
+    console.log("Table:", table);
+    console.log("Conditions:", conditions);
+
     const whereClause = Object.keys(conditions)
       .map((key) => `${key} = ?`)
       .join(" AND ");
@@ -116,9 +176,18 @@ class Database {
 
     return new Promise((resolve, reject) => {
       const query = `DELETE FROM ${table} WHERE ${whereClause}`;
+      console.log("SQL Query:", query);
+      console.log("Values:", values);
+
       this.db.run(query, values, function (err) {
-        if (err) reject(err);
-        else resolve(this.changes);
+        if (err) {
+          console.error("Database error:", err);
+          console.error("Error stack:", err.stack);
+          reject(err);
+        } else {
+          console.log("Delete successful, changes:", this.changes);
+          resolve(this.changes);
+        }
       });
     });
   }
@@ -150,22 +219,6 @@ app.engine("html", (filePath, options, callback) => {
 
 // Initialize database
 const db = new Database("database.sqlite");
-
-// Middleware для проверки авторизации
-app.use(async (req, res, next) => {
-  if (req.cookies.userId) {
-    try {
-      const users = await db.read("users", { id_u: req.cookies.userId });
-      if (users.length > 0) {
-        req.user = users[0];
-        res.locals.user = users[0];
-      }
-    } catch (err) {
-      res.status(500).send("Internal Server Error");
-    }
-  }
-  next();
-});
 
 // Routes for HTML files
 app.get("/", (req, res) => {
@@ -258,6 +311,32 @@ app.post("/api/review", async (req, res) => {
   }
 });
 
+// Logout route
+app.post("/api/logout", (req, res) => {
+  console.log("=== LOGOUT REQUEST ===");
+  console.log("Request headers:", req.headers);
+  console.log("Request cookies:", req.cookies);
+  console.log("Current userId cookie:", req.cookies.userId);
+
+  try {
+    // Очищаем куку
+    res.clearCookie("userId", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0, // Устанавливаем срок жизни в 0, чтобы кука удалилась
+    });
+
+    console.log("Cookie cleared successfully");
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error during logout:", error);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ error: "Ошибка при выходе из системы" });
+  }
+});
+
 // Example routes
 app.post("/api/:table", async (req, res) => {
   try {
@@ -328,12 +407,30 @@ app.get("/api/painting", async (req, res) => {
 // Review route
 app.get("/api/review", async (req, res) => {
   try {
-    const review = await db.read(
-      "review",
-      req.query,
-      "review.*, users.first_name, users.last_name, painting.title",
-      "LEFT JOIN users ON review.id_u = users.id_u LEFT JOIN painting ON review.id_p = painting.id_p ORDER BY review.review_date DESC"
-    );
+    console.log("=== GET REVIEWS REQUEST ===");
+
+    const query = `
+      SELECT review.*, users.first_name, users.last_name, painting.title 
+      FROM review 
+      LEFT JOIN users ON review.id_u = users.id_u 
+      LEFT JOIN painting ON review.id_p = painting.id_p 
+      ORDER BY review.review_date DESC
+    `;
+
+    console.log("Reviews query:", query);
+
+    const reviews = await new Promise((resolve, reject) => {
+      db.db.all(query, [], (err, rows) => {
+        if (err) {
+          console.error("Error in reviews query:", err);
+          console.error("Query was:", query);
+          reject(err);
+        } else {
+          console.log("Found reviews:", JSON.stringify(rows, null, 2));
+          resolve(rows || []);
+        }
+      });
+    });
 
     const templatePath = path.join(
       __dirname,
@@ -344,7 +441,7 @@ app.get("/api/review", async (req, res) => {
     const template = fs.readFileSync(templatePath, "utf8");
 
     let html = "";
-    for (const r of review) {
+    for (const r of reviews) {
       let cardHtml = template;
       for (const [key, value] of Object.entries(r)) {
         cardHtml = cardHtml.replace(new RegExp(`{{${key}}}`, "g"), value || "");
@@ -355,6 +452,9 @@ app.get("/api/review", async (req, res) => {
     res.set("Content-Type", "text/html");
     res.send(html);
   } catch (err) {
+    console.error("=== ERROR IN GET REVIEWS ===");
+    console.error("Full error:", err);
+    console.error("Error stack:", err.stack);
     res.status(500).send("Error rendering template");
   }
 });
@@ -362,68 +462,165 @@ app.get("/api/review", async (req, res) => {
 // Auth routes
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { first_name, last_name, email, password } = req.body;
+    console.log("=== REGISTER REQUEST ===");
+    console.log("Request body:", req.body);
 
-    const existingUser = await db.read("users", { email });
-    if (existingUser.length > 0) {
-      return res
-        .status(400)
-        .send(
-          '<div class="error">Пользователь с таким email уже существует</div>'
-        );
+    const { first_name, last_name, email, password, phone } = req.body;
+
+    if (!first_name || !last_name || !email || !password) {
+      console.log("Missing required fields");
+      return res.status(400).send("Все поля обязательны для заполнения");
     }
 
-    const userId = await db.create("users", {
+    // Проверяем, существует ли пользователь с таким email
+    const checkQuery = "SELECT * FROM users WHERE email = ?";
+    console.log("Check query:", checkQuery);
+    console.log("Query params:", [email]);
+
+    const existingUser = await new Promise((resolve, reject) => {
+      db.db.get(checkQuery, [email], (err, row) => {
+        if (err) {
+          console.error("Database error:", err);
+          reject(err);
+        } else {
+          console.log("Found existing user:", row);
+          resolve(row);
+        }
+      });
+    });
+
+    if (existingUser) {
+      console.log("User already exists");
+      return res.status(400).send("Пользователь с таким email уже существует");
+    }
+
+    // Хэшируем пароль
+    const hashedPassword = await bcrypt.hash(password, 10);
+    console.log("Password hashed successfully");
+
+    // Добавляем пользователя
+    const insertQuery =
+      "INSERT INTO users (first_name, last_name, email, password, phone) VALUES (?, ?, ?, ?, ?)";
+    console.log("Insert query:", insertQuery);
+    console.log("Query params:", [
       first_name,
       last_name,
       email,
-      password,
+      hashedPassword,
+      phone,
+    ]);
+
+    await new Promise((resolve, reject) => {
+      db.db.run(
+        insertQuery,
+        [first_name, last_name, email, hashedPassword, phone],
+        function (err) {
+          if (err) {
+            console.error("Database error:", err);
+            reject(err);
+          } else {
+            console.log("User registered successfully, ID:", this.lastID);
+            resolve();
+          }
+        }
+      );
     });
 
-    res.send(
-      '<div class="success">Регистрация успешна! Теперь вы можете войти.</div>'
-    );
+    console.log("Registration successful");
+    res.send("Регистрация успешно завершена");
   } catch (err) {
-    res.status(500).send('<div class="error">Ошибка при регистрации</div>');
+    console.error("=== REGISTER ERROR ===");
+    console.error("Full error:", err);
+    console.error("Error stack:", err.stack);
+    res.status(500).send("Ошибка сервера");
   }
 });
 
-app.post("/api/login", async (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
   try {
+    console.log("=== LOGIN REQUEST ===");
+    console.log("Request body:", req.body);
+
     const { email, password } = req.body;
-    const user = await db.read("users", { email });
 
-    if (!user || user.length === 0) {
-      return res.status(401).send("Неверный email или пароль");
+    if (!email || !password) {
+      console.log("Missing email or password");
+      return res.status(400).send("Email и пароль обязательны");
     }
 
-    const hashedPassword = user[0].password;
-    const match = await bcrypt.compare(password, hashedPassword);
+    // Ищем пользователя
+    const query = "SELECT * FROM users WHERE email = ?";
+    console.log("Query:", query);
+    console.log("Query params:", [email]);
 
-    if (!match) {
-      return res.status(401).send("Неверный email или пароль");
+    const user = await new Promise((resolve, reject) => {
+      db.db.get(query, [email], (err, row) => {
+        if (err) {
+          console.error("Database error:", err);
+          reject(err);
+        } else {
+          console.log("Found user:", row);
+          resolve(row);
+        }
+      });
+    });
+
+    if (!user) {
+      console.log("User not found");
+      return res.status(401).send("Пользователь не найден");
     }
 
-    const userId = user[0].id_u;
+    // Проверяем пароль
+    const validPassword = await bcrypt.compare(password, user.password);
+    console.log("Password valid:", validPassword);
 
-    res.cookie("userId", userId, {
+    if (!validPassword) {
+      console.log("Invalid password");
+      return res.status(401).send("Неверный пароль");
+    }
+
+    // Устанавливаем куку
+    res.cookie("userId", user.id_u, {
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
       path: "/",
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 дней
     });
 
-    res.json({ success: true, user: { id: userId, email: user[0].email } });
+    console.log("Login successful, cookie set");
+    res.send("Вход выполнен успешно");
   } catch (err) {
-    res.status(500).send("Ошибка при входе");
+    console.error("=== LOGIN ERROR ===");
+    console.error("Full error:", err);
+    console.error("Error stack:", err.stack);
+    res.status(500).send("Ошибка сервера");
   }
 });
 
-// Auth check endpoint
+// Check auth status
 app.get("/api/auth/check", (req, res) => {
-  const isAuthenticated = !!req.cookies.userId;
-  res.json({ authenticated: isAuthenticated });
+  console.log("=== CHECK AUTH REQUEST ===");
+  console.log("Request headers:", req.headers);
+  console.log("Request cookies:", req.cookies);
+  console.log("Current userId cookie:", req.cookies.userId);
+
+  try {
+    const userId = req.cookies.userId;
+    console.log("User ID from cookie:", userId);
+
+    if (userId) {
+      console.log("User is authenticated");
+      res.json({ authenticated: true });
+    } else {
+      console.log("User is not authenticated");
+      res.json({ authenticated: false });
+    }
+  } catch (error) {
+    console.error("Error during auth check:", error);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ error: "Ошибка при проверке авторизации" });
+  }
 });
 
 // Cart routes
@@ -547,37 +744,70 @@ app.get("/api/user/info", async (req, res) => {
 app.get("/api/orders", async (req, res) => {
   try {
     const userId = req.cookies.userId;
+    console.log("=== GET ORDERS REQUEST ===");
+    console.log("User ID:", userId);
+
     if (!userId) {
+      console.log("No user ID in cookies");
       return res.status(401).json({ error: "Необходимо авторизоваться" });
     }
 
-    console.log("Getting orders for user:", userId);
+    // Получаем заказы пользователя напрямую через SQL
+    console.log("Fetching orders for user:", userId);
+    const orders = await new Promise((resolve, reject) => {
+      const query = "SELECT * FROM orders WHERE id_u = ? ORDER BY date DESC";
 
-    // Получаем заказы пользователя
-    const orders = await db.read(
-      '"order"',
-      { id_u: userId },
-      "*",
-      "ORDER BY date DESC"
-    );
+      console.log("Orders query:", query);
+      console.log("Orders params:", [userId]);
 
-    console.log("Found orders:", orders);
+      db.db.all(query, [userId], (err, rows) => {
+        if (err) {
+          console.error("Error in orders query:", err);
+          console.error("Query was:", query);
+          console.error("Params were:", [userId]);
+          reject(err);
+        } else {
+          console.log("Found orders:", JSON.stringify(rows, null, 2));
+          resolve(rows || []);
+        }
+      });
+    });
 
     // Для каждого заказа получаем его товары
+    console.log("Fetching items for orders");
     for (const order of orders) {
-      const items = await db.read(
-        "order_items",
-        { id_o: order.id_o },
-        "order_items.*, painting.title, painting.price, painting.image",
-        "LEFT JOIN painting ON order_items.id_p = painting.id_p"
-      );
-      console.log("Found items for order", order.id_o, ":", items);
+      console.log("Fetching items for order:", order.id_o);
+      const items = await new Promise((resolve, reject) => {
+        const query =
+          "SELECT order_items.*, painting.title, painting.price, painting.image FROM order_items LEFT JOIN painting ON order_items.id_p = painting.id_p WHERE order_items.id_o = ?";
+
+        console.log("Items query:", query);
+        console.log("Items params:", [order.id_o]);
+
+        db.db.all(query, [order.id_o], (err, rows) => {
+          if (err) {
+            console.error("Error in items query:", err);
+            console.error("Query was:", query);
+            console.error("Params were:", [order.id_o]);
+            reject(err);
+          } else {
+            console.log("Found items:", JSON.stringify(rows, null, 2));
+            resolve(rows || []);
+          }
+        });
+      });
       order.items = items;
     }
 
+    console.log(
+      "Sending response with orders:",
+      JSON.stringify(orders, null, 2)
+    );
     res.json(orders);
   } catch (err) {
-    console.error("Error getting orders:", err);
+    console.error("=== ERROR IN GET ORDERS ===");
+    console.error("Full error:", err);
+    console.error("Error stack:", err.stack);
     res.status(500).json({ error: "Ошибка при получении заказов" });
   }
 });
@@ -608,7 +838,7 @@ app.post("/api/order/create", async (req, res) => {
     const cleanPrice = total_price.replace(/[^\d]/g, "");
 
     // Создаем заказ
-    const orderId = await db.create('"order"', {
+    const orderId = await db.create("orders", {
       id_u: userId,
       date: new Date().toISOString(),
       status: "pending",
@@ -627,7 +857,7 @@ app.post("/api/order/create", async (req, res) => {
     }
 
     // Создаем запись о транзакции
-    await db.create('"transaction"', {
+    await db.create("transactions", {
       id_o: orderId,
       id_u: userId,
       amount: cleanPrice,
@@ -674,7 +904,6 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
-
 function onRegisterSuccess(event) {
   if (
     event.detail.xhr &&

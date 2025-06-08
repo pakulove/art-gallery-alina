@@ -346,6 +346,88 @@
       .footer-link:hover {
         color: #ccc;
       }
+
+      /* Стили для формы отзывов */
+      #review-form-container {
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      #review-form .form-group {
+        margin-bottom: 20px;
+      }
+
+      #review-form label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #1a1a1a;
+      }
+
+      #review-form select,
+      #review-form textarea {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+      }
+
+      #review-form select:focus,
+      #review-form textarea:focus {
+        border-color: #1a1a1a;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.1);
+      }
+
+      #review-form textarea {
+        min-height: 120px;
+        resize: vertical;
+      }
+
+      #review-form .submit-button {
+        width: 100%;
+        padding: 16px;
+        background-color: #1a1a1a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      #review-form .submit-button:hover {
+        background-color: #333;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Стили для сообщений об успехе/ошибке */
+      #review-message {
+        margin-top: 20px;
+        padding: 10px;
+        border-radius: 4px;
+        text-align: center;
+      }
+
+      #review-message.success {
+        color: #155724;
+        background-color: #d4edda;
+      }
+
+      #review-message.error {
+        color: #721c24;
+        background-color: #f8d7da;
+      }
     </style>
   </head>
   <body>
@@ -455,42 +537,51 @@
     <section class="reviews">
       <div class="container">
         <h2 class="section-title">Отзывы</h2>
-        <div
-          id="reviews-container"
-          hx-get="/api/review"
-          hx-trigger="load"
-          hx-target="#reviews-container"
-          hx-swap="innerHTML"
-        ></div>
-        <div id="auth-required" style="display: none">
-          <p class="auth-message">Войдите, чтобы оставить отзыв</p>
-        </div>
-        <div id="review-form-content" style="display: none">
-          <form id="review-form" action="/api/review" method="POST">
-            <div class="form-group">
-              <label for="painting-select">Выберите картину</label>
-              <select
-                id="painting-select"
-                name="id_p"
-                required
-                class="review-select"
-              >
-                <option value="">Загрузка картин...</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="review-text">Ваш отзыв</label>
-              <textarea
-                id="review-text"
-                name="comment"
-                rows="4"
-                required
-                class="review-textarea"
-                placeholder="Напишите ваш отзыв о картине..."
-              ></textarea>
-            </div>
-            <button type="submit" class="review-submit">Отправить отзыв</button>
-          </form>
+        <div class="reviews-section">
+          <!-- Форма отзыва (видна только авторизованным) -->
+          <div id="review-form-container" style="display: none">
+            <form
+              id="review-form"
+              class="reviews"
+              onsubmit="return handleReview(event)"
+            >
+              <div class="form-group">
+                <label for="painting-select">Выберите картину</label>
+                <select
+                  id="painting-select"
+                  name="id_p"
+                  class="review-select"
+                  required
+                  hx-get="/api/painting"
+                  hx-target="this"
+                  hx-trigger="load"
+                ></select>
+              </div>
+              <div class="form-group">
+                <label for="review-text">Ваш отзыв</label>
+                <textarea
+                  id="review-text"
+                  name="comment"
+                  class="review-textarea"
+                  required
+                ></textarea>
+              </div>
+              <button type="submit" class="review-submit">
+                Оставить отзыв
+              </button>
+            </form>
+          </div>
+
+          <!-- Сообщение для неавторизованных -->
+          <div id="auth-required" class="auth-message" style="display: none">
+            <p>
+              Чтобы оставить отзыв, пожалуйста, <a href="/auth">войдите</a> или
+              <a href="/auth?register=true">зарегистрируйтесь</a>
+            </p>
+          </div>
+
+          <!-- Список отзывов -->
+          <div id="reviews-list" hx-get="/api/review" hx-trigger="load"></div>
         </div>
       </div>
     </section>
@@ -525,163 +616,54 @@
       </div>
     </footer>
 
+    <script src="/js/auth.js"></script>
     <script>
-      // Глобальная функция для добавления в корзину
-      window.addToCart = async function (paintingId) {
-        console.log("=== ADD TO CART ===");
-        console.log("Painting ID:", paintingId);
+      async function handleReview(event) {
+        event.preventDefault();
+        const form = event.target;
+
         try {
-          console.log("Sending request to /api/cart/add");
-          const response = await fetch("/api/cart/add", {
+          const response = await fetch("/api/review", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
             },
-            credentials: "include",
-            body: JSON.stringify({ paintingId }),
-          });
-
-          console.log("Response status:", response.status);
-          const data = await response.json();
-          console.log("Response data:", data);
-
-          if (!response.ok) {
-            throw new Error(data.error || "Ошибка при добавлении в корзину");
-          }
-
-          // Обновляем счетчик корзины
-          await updateCartCount();
-        } catch (error) {
-          console.error("Error:", error);
-          alert(error.message);
-        }
-        console.log("=== END ADD TO CART ===");
-      };
-
-      // Функция для обновления состояния авторизации
-      function updateAuthState() {
-        const user = JSON.parse(localStorage.getItem("user"));
-        const isAuthenticated = !!user;
-
-        // Обновляем хедер
-        const authLink = document.querySelector('[data-auth-element="login"]');
-        const profileLink = document.querySelector(
-          '[data-auth-element="profile"]'
-        );
-
-        if (authLink && profileLink) {
-          if (isAuthenticated) {
-            authLink.style.display = "none";
-            profileLink.style.display = "block";
-          } else {
-            authLink.style.display = "block";
-            profileLink.style.display = "none";
-          }
-        }
-
-        // Обновляем форму отзыва
-        const authRequired = document.getElementById("auth-required");
-        const reviewFormContent = document.getElementById(
-          "review-form-content"
-        );
-
-        if (authRequired && reviewFormContent) {
-          if (isAuthenticated) {
-            authRequired.style.display = "none";
-            reviewFormContent.style.display = "block";
-            // Загружаем список картин при показе формы
-            loadPaintings();
-          } else {
-            authRequired.style.display = "block";
-            reviewFormContent.style.display = "none";
-          }
-        }
-
-        // Обновляем секцию регистрации
-        const registrationSection = document.getElementById(
-          "registration-section"
-        );
-        if (registrationSection) {
-          registrationSection.style.display = isAuthenticated
-            ? "none"
-            : "block";
-        }
-      }
-
-      // Функция для загрузки списка картин
-      function loadPaintings() {
-        const select = document.getElementById("painting-select");
-        select.innerHTML = '<option value="">Загрузка картин...</option>';
-
-        fetch("/api/painting", {
-          headers: {
-            "hx-target": "painting-select",
-          },
-        })
-          .then((response) => response.text())
-          .then((html) => {
-            select.innerHTML = html;
-          })
-          .catch((error) => {
-            console.error("Error loading paintings:", error);
-            select.innerHTML =
-              '<option value="">Ошибка загрузки картин</option>';
-          });
-      }
-
-      // Обновляем состояние при загрузке
-      updateAuthState();
-
-      // Добавляем обработчик отправки формы
-      document
-        .getElementById("review-form")
-        .addEventListener("submit", function (e) {
-          e.preventDefault();
-
-          // Получаем данные формы
-          const formData = new FormData(this);
-          const comment = formData.get("comment");
-          const id_p = formData.get("id_p");
-
-          // Получаем id_u из куки
-          const cookies = document.cookie.split(";");
-          let id_u = null;
-          for (const cookie of cookies) {
-            const [name, value] = cookie.trim().split("=");
-            if (name === "userId") {
-              id_u = value;
-              break;
-            }
-          }
-
-          // Отправляем запрос
-          fetch("/api/review", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            credentials: "include",
             body: JSON.stringify({
-              comment,
-              id_p,
-              id_u: parseInt(id_u),
+              id_p: form.id_p.value,
+              comment: form.comment.value,
             }),
-          })
-            .then((response) => response.text())
-            .then((text) => {
-              if (text.includes("success")) {
-                window.location.href = "/?review=success";
-              } else {
-                alert(text);
-              }
-            })
-            .catch((error) => {
-              console.error("Error:", error);
-              alert("Ошибка при отправке отзыва");
-            });
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            form.reset();
+            // Перезагружаем страницу после успешной отправки отзыва
+            window.location.reload();
+          } else {
+            const text = await response.text();
+            alert(text);
+          }
+        } catch (error) {
+          console.error("Review error:", error);
+          alert("Ошибка при отправке отзыва");
+        }
+
+        return false;
+      }
+
+      // Используем checkAuth из auth.js для проверки авторизации
+      document.addEventListener("DOMContentLoaded", () => {
+        checkAuth().then((isAuthenticated) => {
+          const registrationSection = document.getElementById(
+            "registration-section"
+          );
+          if (registrationSection) {
+            registrationSection.style.display = isAuthenticated
+              ? "none"
+              : "block";
+          }
         });
-
-
+      });
     </script>
   </body>
 </html>

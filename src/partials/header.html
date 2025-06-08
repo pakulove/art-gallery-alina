@@ -9,14 +9,11 @@
       <a href="/cart" class="nav-link" id="cart-link">
         Корзина <span id="cart-count" style="display: none">(0)</span>
       </a>
-      <a href="/auth" class="nav-link" id="auth-link" data-auth-element="login"
-        >Войти</a
-      >
+      <a href="/auth" class="nav-link" id="login-link">Войти</a>
       <a
         href="/profile"
         class="nav-link"
         id="profile-link"
-        data-auth-element="profile"
         style="display: none"
         >Профиль</a
       >
@@ -24,21 +21,4 @@
   </div>
 </header>
 
-<script>
-  // Обновляем состояние при загрузке
-  const user = JSON.parse(localStorage.getItem("user"));
-  const isAuthenticated = !!user;
-
-  const authLink = document.querySelector('[data-auth-element="login"]');
-  const profileLink = document.querySelector('[data-auth-element="profile"]');
-
-  if (authLink && profileLink) {
-    if (isAuthenticated) {
-      authLink.style.display = "none";
-      profileLink.style.display = "block";
-    } else {
-      authLink.style.display = "block";
-      profileLink.style.display = "none";
-    }
-  }
-</script>
+<script src="/js/auth.js"></script>

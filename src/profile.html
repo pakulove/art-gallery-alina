@@ -33,6 +33,9 @@
                 <span>Email:</span>
                 <span id="user-email"></span>
               </div>
+              <div class="info-row">
+                <button onclick="logout()" class="logout-btn">Выйти</button>
+              </div>
             </div>
           </div>
 
@@ -112,7 +115,9 @@
                   </div>
                   <div class="detail-row">
                     <span>Способ оплаты:</span>
-                    <span>${order.payment}</span>
+                    <span>${
+                      order.payment === "card" ? "Карта" : "Наличные"
+                    }</span>
                   </div>
                   <div class="detail-row">
                     <span>Сумма заказа:</span>
@@ -152,6 +157,43 @@
           cancelled: "Отменён",
         };
         return statusMap[status] || status;
+      }
+
+      async function logout() {
+        console.log("=== CLIENT LOGOUT START ===");
+        try {
+          console.log("Sending logout request to /api/logout");
+          const response = await fetch("/api/logout", {
+            method: "POST",
+            credentials: "include",
+          });
+
+          console.log("Logout response status:", response.status);
+          const data = await response.json();
+          console.log("Logout response data:", data);
+
+          if (response.ok) {
+            console.log("Logout successful, clearing local storage");
+            // Очищаем все данные из localStorage
+            localStorage.clear();
+
+            console.log("Local storage cleared, updating UI");
+            // После успешного выхода обновляем UI
+            await updateAuthUI();
+
+            console.log("UI updated, redirecting to home page");
+            // И перенаправляем на главную
+            window.location.href = "/";
+          } else {
+            console.error("Logout failed:", response.status);
+            alert("Ошибка при выходе из системы");
+          }
+        } catch (error) {
+          console.error("Error during logout:", error);
+          console.error("Error stack:", error.stack);
+          alert("Ошибка при выходе из системы");
+        }
+        console.log("=== CLIENT LOGOUT END ===");
       }
 
       // Загружаем данные при загрузке страницы
@@ -323,6 +365,24 @@
         font-size: 1.2rem;
         padding: 2rem;
       }
+
+      .logout-btn {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+        width: 100%;
+        margin-top: 1rem;
+      }
+
+      .logout-btn:hover {
+        background-color: #c82333;
+      }
     </style>
+    <script src="/js/auth.js"></script>
   </body>
 </html>

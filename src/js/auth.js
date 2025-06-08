@@ -1,4 +1,3 @@
-
 // Add event listeners when DOM is loaded
 document.addEventListener("DOMContentLoaded", function () {
   document.querySelectorAll(".toggle-form").forEach((link) => {
@@ -8,19 +7,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 });
-
-function toggleForms() {
-  const loginForm = document.getElementById("login-form");
-  const registerForm = document.getElementById("register-form");
-
-  if (loginForm.style.display === "none") {
-    loginForm.style.display = "block";
-    registerForm.style.display = "none";
-  } else {
-    loginForm.style.display = "none";
-    registerForm.style.display = "block";
-  }
-}
 
 function onRegisterSuccess(event) {
   if (
@@ -57,3 +43,41 @@ function onLoginSuccess(event) {
     messageDiv.className = "error";
   }
 }
+
+// Функция для проверки авторизации
+async function checkAuth() {
+  try {
+    const response = await fetch("/api/auth/check", {
+      credentials: "include",
+    });
+    const data = await response.json();
+    return data.authenticated;
+  } catch (error) {
+    console.error("Auth check error:", error);
+    return false;
+  }
+}
+
+// Функция для обновления UI в зависимости от авторизации
+async function updateAuthUI() {
+  const isAuthenticated = await checkAuth();
+
+  // Обновляем хедер
+  const loginLink = document.getElementById("login-link");
+  const profileLink = document.getElementById("profile-link");
+  if (loginLink && profileLink) {
+    loginLink.style.display = isAuthenticated ? "none" : "block";
+    profileLink.style.display = isAuthenticated ? "block" : "none";
+  }
+
+  // Обновляем форму отзыва
+  const reviewForm = document.getElementById("review-form-container");
+  const authRequired = document.getElementById("auth-required");
+  if (reviewForm && authRequired) {
+    reviewForm.style.display = isAuthenticated ? "block" : "none";
+    authRequired.style.display = isAuthenticated ? "none" : "block";
+  }
+}
+
+// Проверяем авторизацию при загрузке страницы
+document.addEventListener("DOMContentLoaded", updateAuthUI);
