@@ -185,6 +185,10 @@ app.get("/profile", (req, res) => {
   res.sendFile(path.join(__dirname, "src", "profile.html"));
 });
 
+app.get("/cart", (req, res) => {
+  res.sendFile(path.join(__dirname, "src", "cart.html"));
+});
+
 // Review route
 app.post("/api/review", async (req, res) => {
   try {

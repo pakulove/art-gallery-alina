@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Корзина - ARTLUMEN</title>
+    <link rel="stylesheet" href="static/css/styles.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <div id="header" hx-get="/partials/header.html" hx-trigger="load"></div>
+
+    <!-- Cart Section -->
+    <section class="cart-section">
+      <div class="container">
+        <h1 class="section-title">Корзина</h1>
+
+        <div id="cart-items" class="cart-items">
+          <!-- Cart items will be loaded here -->
+        </div>
+
+        <div class="cart-summary">
+          <div class="summary-row">
+            <span>Итого:</span>
+            <span id="total-price">0 ₽</span>
+          </div>
+          <button class="btn-order" id="checkout-btn">Оформить заказ</button>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // Загрузка товаров в корзине
+      async function loadCart() {
+        try {
+          const response = await fetch("/api/cart", {
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error("Ошибка при получении корзины");
+          }
+
+          const cart = await response.json();
+          const cartItemsEl = document.getElementById("cart-items");
+          const totalPriceEl = document.getElementById("total-price");
+
+          if (cart.length === 0) {
+            cartItemsEl.innerHTML =
+              '<p class="empty-cart">Ваша корзина пуста</p>';
+            totalPriceEl.textContent = "0 ₽";
+            return;
+          }
+
+          let total = 0;
+          let html = "";
+
+          for (const item of cart) {
+            total += parseInt(item.price);
+            html += `
+              <div class="cart-item" data-id="${item.id_sc}">
+                <img src="${item.image}" alt="${item.title}" class="cart-item-image">
+                <div class="cart-item-details">
+                  <h3>${item.title}</h3>
+                  <p class="cart-item-price">${item.price} ₽</p>
+                </div>
+                <button class="remove-from-cart" onclick="removeFromCart('${item.id_sc}')">×</button>
+              </div>
+            `;
+          }
+
+          cartItemsEl.innerHTML = html;
+          totalPriceEl.textContent = `${total} ₽`;
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      // Удаление товара из корзины
+      async function removeFromCart(id_sc) {
+        try {
+          const response = await fetch(`/api/cart/${id_sc}`, {
+            method: "DELETE",
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error("Ошибка при удалении из корзины");
+          }
+
+          // Перезагружаем корзину
+          await loadCart();
+          // Обновляем счетчик в хедере
+          const cartCountEl = document.getElementById("cart-count");
+          if (cartCountEl) {
+            const currentCount = parseInt(
+              cartCountEl.textContent.match(/\d+/)[0]
+            );
+            if (currentCount > 1) {
+              cartCountEl.textContent = `(${currentCount - 1})`;
+            } else {
+              cartCountEl.style.display = "none";
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          alert("Ошибка при удалении из корзины");
+        }
+      }
+
+      // Загружаем корзину при загрузке страницы
+      loadCart();
+    </script>
+
+    <style>
+      .cart-section {
+        padding: 60px 0;
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .cart-items {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .cart-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1rem;
+        position: relative;
+      }
+
+      .cart-item-image {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-right: 1rem;
+      }
+
+      .cart-item-details {
+        flex-grow: 1;
+      }
+
+      .cart-item-details h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.2rem;
+      }
+
+      .cart-item-price {
+        color: #666;
+        font-weight: 500;
+      }
+
+      .remove-from-cart {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #999;
+        cursor: pointer;
+        padding: 0.5rem;
+        line-height: 1;
+      }
+
+      .remove-from-cart:hover {
+        color: #333;
+      }
+
+      .cart-summary {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        font-weight: 500;
+      }
+
+      .empty-cart {
+        text-align: center;
+        color: #666;
+        font-size: 1.2rem;
+        padding: 2rem;
+      }
+
+      #checkout-btn {
+        width: 100%;
+        padding: 1rem;
+        background: #333;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      #checkout-btn:hover {
+        background: #444;
+      }
+    </style>
+  </body>
+</html>
