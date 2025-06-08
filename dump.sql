@@ -70,3 +70,18 @@ CREATE TABLE shopping_cart (
   FOREIGN KEY (id_p) REFERENCES painting (id_p),
   FOREIGN KEY (id_u) REFERENCES users (id_u)
 );
+
+CREATE TABLE event (
+	e_id INTEGER NOT NULL,
+	name TEXT NOT NULL,
+	date TIMESTAMP NOT NULL, 
+	CONSTRAINT event_pk PRIMARY KEY (e_id)
+);
+
+CREATE TABLE event_paintings (
+	event_id INTEGER,
+	painting_id INTEGER,
+	CONSTRAINT EVENT_PAINTINGS_PK PRIMARY KEY (event_id,painting_id),
+	CONSTRAINT event_paintings_event_FK FOREIGN KEY (event_id) REFERENCES event(e_id) ON DELETE SET NULL ON UPDATE SET NULL,
+	CONSTRAINT event_paintings_painting_FK FOREIGN KEY (painting_id) REFERENCES painting(id_p) ON DELETE SET NULL ON UPDATE SET NULL
+);

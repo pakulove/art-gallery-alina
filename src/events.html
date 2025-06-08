@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Мероприятия - ARTLUMEN</title>
+    <link rel="stylesheet" href="static/css/styles.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <div id="header" hx-get="/partials/header.html" hx-trigger="load"></div>
+
+    <!-- Events Section -->
+    <section class="events-section">
+      <div class="container">
+        <h1 class="section-title">Мероприятия</h1>
+
+        <div id="events-list" class="events-list">
+          <!-- Events will be loaded here -->
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // Загрузка мероприятий
+      async function loadEvents() {
+        try {
+          const response = await fetch("/api/events", {
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error("Ошибка при получении мероприятий");
+          }
+
+          const events = await response.json();
+          const eventsListEl = document.getElementById("events-list");
+
+          if (events.length === 0) {
+            eventsListEl.innerHTML =
+              '<p class="empty-events">Нет доступных мероприятий</p>';
+            return;
+          }
+
+          let html = "";
+          for (const event of events) {
+            html += `
+              <div class="event-card">
+                <div class="event-header">
+                  <h2>${event.name}</h2>
+                  <p class="event-date">${new Date(
+                    event.date
+                  ).toLocaleDateString()}</p>
+                </div>
+                <div class="event-paintings">
+                  <h3>Участвующие картины:</h3>
+                  <div class="paintings-grid">
+                    ${event.paintings
+                      .map(
+                        (painting) => `
+                      <div class="painting-item">
+                        <img src="${painting.image}" alt="${painting.title}" class="painting-image">
+                        <div class="painting-details">
+                          <h4>${painting.title}</h4>
+                          <p>${painting.author}</p>
+                          <p class="price">${painting.price} ₽</p>
+                        </div>
+                      </div>
+                    `
+                      )
+                      .join("")}
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+
+          eventsListEl.innerHTML = html;
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      // Загружаем мероприятия при загрузке страницы
+      loadEvents();
+    </script>
+
+    <style>
+      .events-section {
+        padding: 60px 0;
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .events-list {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .event-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+      }
+
+      .event-header {
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+      }
+
+      .event-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: #333;
+      }
+
+      .event-date {
+        margin: 0.5rem 0 0 0;
+        color: #666;
+        font-size: 1rem;
+      }
+
+      .event-paintings {
+        padding: 1.5rem;
+      }
+
+      .event-paintings h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.2rem;
+        color: #333;
+      }
+
+      .paintings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .painting-item {
+        background: #fff;
+        border-radius: 4px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s;
+      }
+
+      .painting-item:hover {
+        transform: translateY(-5px);
+      }
+
+      .painting-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+      }
+
+      .painting-details {
+        padding: 1rem;
+      }
+
+      .painting-details h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.1rem;
+        color: #333;
+      }
+
+      .painting-details p {
+        margin: 0;
+        color: #666;
+      }
+
+      .painting-details .price {
+        margin-top: 0.5rem;
+        font-weight: 500;
+        color: #333;
+      }
+
+      .empty-events {
+        text-align: center;
+        color: #666;
+        font-size: 1.2rem;
+        padding: 2rem;
+      }
+
+      @media (max-width: 768px) {
+        .paintings-grid {
+          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        }
+      }
+
+      @media (max-width: 480px) {
+        .paintings-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </body>
+</html>

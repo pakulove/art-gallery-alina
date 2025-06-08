@@ -196,6 +196,10 @@ app.get("/cart", (req, res) => {
   res.sendFile(path.join(__dirname, "src", "cart.html"));
 });
 
+app.get("/events", (req, res) => {
+  res.sendFile(path.join(__dirname, "src", "events.html"));
+});
+
 // Review route
 app.post("/api/review", async (req, res) => {
   try {
@@ -638,6 +642,30 @@ app.post("/api/order/create", async (req, res) => {
   } catch (err) {
     console.error("Error creating order:", err);
     res.status(500).json({ error: "Ошибка при создании заказа" });
+  }
+});
+
+// Events route
+app.get("/api/events", async (req, res) => {
+  try {
+    // Получаем все мероприятия
+    const events = await db.read("event", {}, "*", "ORDER BY date DESC");
+
+    // Для каждого мероприятия получаем связанные картины
+    for (const event of events) {
+      const paintings = await db.read(
+        "event_paintings",
+        { event_id: event.e_id },
+        "painting.*",
+        "LEFT JOIN painting ON event_paintings.painting_id = painting.id_p"
+      );
+      event.paintings = paintings;
+    }
+
+    res.json(events);
+  } catch (err) {
+    console.error("Error getting events:", err);
+    res.status(500).json({ error: "Ошибка при получении мероприятий" });
   }
 });
 
