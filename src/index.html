@@ -6,8 +6,347 @@
     <title>Галерея Искусств</title>
     <meta name="description" content="Галерея Искусств" />
     <meta name="keywords" content="Галерея Искусств" />
-    <link rel="stylesheet" href="static/css/styles.css" />
+    <link rel="stylesheet" href="/static/css/styles.css" />
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+      /* Global Styles */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Montserrat", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        line-height: 1.6;
+        color: #1a1a1a;
+        background-color: #ffffff;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* Reviews Section */
+      .reviews {
+        padding: 100px 0;
+        background-color: #fafafa;
+      }
+
+      .reviews .section-title {
+        font-size: 42px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 60px;
+        color: #1a1a1a;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .reviews #reviews-container {
+        margin-bottom: 60px;
+        display: grid;
+        gap: 30px;
+      }
+
+      .reviews .auth-message {
+        text-align: center;
+        font-size: 20px;
+        color: #666;
+        margin: 30px 0;
+        font-weight: 500;
+      }
+
+      .reviews .auth-message a {
+        color: #1a1a1a;
+        text-decoration: none;
+        border-bottom: 2px solid #1a1a1a;
+        transition: all 0.3s ease;
+      }
+
+      .reviews .auth-message a:hover {
+        color: #666;
+        border-bottom-color: #666;
+      }
+
+      .reviews #review-form {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      .reviews .form-group {
+        margin-bottom: 30px;
+      }
+
+      .reviews .form-group label {
+        display: block;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: #1a1a1a;
+        font-size: 18px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .reviews .form-group textarea {
+        width: 100%;
+        padding: 20px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        background-color: #fafafa;
+        color: #1a1a1a;
+      }
+
+      .reviews .form-group textarea:focus {
+        border-color: #1a1a1a;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.1);
+        background-color: #ffffff;
+      }
+
+      .reviews .review-textarea {
+        resize: vertical;
+        min-height: 150px;
+      }
+
+      .reviews .review-textarea:focus {
+        border-color: #1a1a1a;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.1);
+        background-color: #ffffff;
+      }
+
+      .reviews .review-select {
+        width: 100%;
+        padding: 20px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        font-family: inherit;
+        background-color: #fafafa;
+        color: #1a1a1a;
+        margin-bottom: 20px;
+      }
+
+      .reviews .review-select:focus {
+        border-color: #1a1a1a;
+        outline: none;
+        box-shadow: 0 0 0 4px rgba(26, 26, 26, 0.1);
+        background-color: #ffffff;
+      }
+
+      .reviews .review-submit {
+        display: block;
+        width: 100%;
+        padding: 16px;
+        background-color: #1a1a1a;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .reviews .review-submit:hover {
+        background-color: #333;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      }
+
+      .reviews .review-submit:active {
+        transform: translateY(0);
+        box-shadow: none;
+      }
+
+      /* Registration Section */
+      .registration {
+        padding: 100px 0;
+        background-color: #1a1a1a;
+        text-align: center;
+        color: white;
+      }
+
+      .registration .registration-title {
+        font-size: 42px;
+        font-weight: 700;
+        margin-bottom: 30px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .registration .program-text {
+        font-size: 20px;
+        color: #ffffff;
+        margin-bottom: 40px;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        opacity: 0.9;
+      }
+
+      .registration .registration-button {
+        display: inline-block;
+        padding: 20px 40px;
+        background-color: #ffffff;
+        color: #1a1a1a;
+        text-decoration: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 18px;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .registration .registration-button:hover {
+        background-color: #f0f0f0;
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+      }
+
+      .registration .registration-button:active {
+        transform: translateY(0);
+        box-shadow: none;
+      }
+
+      /* Hero Section */
+      .hero {
+        padding: 120px 0;
+        background-color: #1a1a1a;
+        color: white;
+      }
+
+      .hero-title {
+        font-size: 48px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      /* Program Section */
+      .section {
+        padding: 100px 0;
+      }
+
+      .program-card {
+        margin-bottom: 60px;
+      }
+
+      .program-image {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        margin-bottom: 30px;
+      }
+
+      .program-title {
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .program-text {
+        font-size: 18px;
+        color: #666;
+        margin-bottom: 30px;
+      }
+
+      /* Events Section */
+      .events {
+        padding: 100px 0;
+        background-color: #fafafa;
+      }
+
+      .events-title {
+        font-size: 42px;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 60px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .event-card {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      }
+
+      .event-image {
+        width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin-bottom: 30px;
+      }
+
+      .event-title {
+        font-size: 28px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .event-date {
+        font-size: 16px;
+        color: #666;
+        margin-top: 20px;
+      }
+
+      /* Footer */
+      .footer {
+        padding: 60px 0;
+        background-color: #1a1a1a;
+        color: white;
+      }
+
+      .footer-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 40px;
+      }
+
+      .footer h3 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .footer-link {
+        display: block;
+        color: white;
+        text-decoration: none;
+        margin-bottom: 10px;
+        transition: color 0.3s ease;
+      }
+
+      .footer-link:hover {
+        color: #ccc;
+      }
+    </style>
   </head>
   <body>
     <!-- Header -->
@@ -92,21 +431,6 @@
       </div>
     </section>
 
-    <!-- Video -->
-    <section class="section">
-      <div class="container">
-        <video
-          src="https://video.srv18.com/v/mp4/c6301c70eebe2750106ed962fea10e0a/1920"
-          poster="static/images/3rd_screen.jpg"
-          preload="metadata"
-          playsinline
-          muted
-          loop
-          class="program-image"
-        ></video>
-      </div>
-    </section>
-
     <!-- Paintings -->
     <section class="section">
       <div class="container">
@@ -130,66 +454,57 @@
     <!-- Reviews -->
     <section class="reviews">
       <div class="container">
-        <h2 class="events-title">REVIEWS</h2>
+        <h2 class="section-title">Отзывы</h2>
         <div
           id="reviews-container"
-          hx-get="/api/reviews"
+          hx-get="/api/review"
           hx-trigger="load"
+          hx-target="#reviews-container"
           hx-swap="innerHTML"
         ></div>
-
-        <!-- Review Form -->
-        <div id="review-form">
-          <h3>Оставить отзыв</h3>
-          <!-- Форма для неавторизованных -->
-          <div id="auth-required" class="auth-required">
-            <p>
-              Чтобы оставить отзыв, необходимо <a href="/auth">войти</a> или
-              <a href="/auth">зарегистрироваться</a>
-            </p>
-          </div>
-          <!-- Форма для авторизованных -->
-          <div id="review-form-content" style="display: none">
-            <form hx-post="/api/reviews" hx-target="#review-message">
-              <div class="form-group">
-                <label for="painting-select">Выберите картину</label>
-                <select
-                  id="painting-select"
-                  name="painting_id"
-                  required
-                  hx-get="/api/painting"
-                  hx-trigger="load"
-                  hx-target="this"
-                >
-                  <option value="">Загрузка картин...</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="review-comment">Ваш отзыв</label>
-                <textarea
-                  id="review-comment"
-                  name="comment"
-                  required
-                ></textarea>
-              </div>
-              <button type="submit" class="registration-button">
-                Отправить отзыв
-              </button>
-            </form>
-            <div id="review-message"></div>
-          </div>
+        <div id="auth-required" style="display: none">
+          <p class="auth-message">Войдите, чтобы оставить отзыв</p>
+        </div>
+        <div id="review-form-content" style="display: none">
+          <form id="review-form" action="/api/review" method="POST">
+            <div class="form-group">
+              <label for="painting-select">Выберите картину</label>
+              <select
+                id="painting-select"
+                name="id_p"
+                required
+                class="review-select"
+              >
+                <option value="">Загрузка картин...</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="review-text">Ваш отзыв</label>
+              <textarea
+                id="review-text"
+                name="comment"
+                rows="4"
+                required
+                class="review-textarea"
+                placeholder="Напишите ваш отзыв о картине..."
+              ></textarea>
+            </div>
+            <button type="submit" class="review-submit">Отправить отзыв</button>
+          </form>
         </div>
       </div>
     </section>
 
     <!-- Registration -->
-    <section class="registration">
+    <section class="registration" id="registration-section">
       <div class="container">
         <h2 class="registration-title">СТАНЬ ЧАСТЬЮ ИСКУССТВА</h2>
         <p class="program-text">
           Приходите. Будем говорить без слов. Через цвет, линию, эмоцию.
         </p>
-        <a href="#" class="registration-button">ЗАРЕГИСТРИРОВАТЬСЯ</a>
+        <a href="/auth" class="registration-button" id="registration-button"
+          >ЗАРЕГИСТРИРОВАТЬСЯ</a
+        >
       </div>
     </section>
 
@@ -213,10 +528,8 @@
     <script>
       // Функция для обновления состояния авторизации
       function updateAuthState() {
-        console.log("=== AUTH STATE UPDATE ===");
-        const isAuthenticated = document.cookie.includes("userId=");
-        console.log("Auth state:", isAuthenticated);
-        console.log("Cookies:", document.cookie);
+        const user = JSON.parse(localStorage.getItem("user"));
+        const isAuthenticated = !!user;
 
         // Обновляем хедер
         const authLink = document.querySelector('[data-auth-element="login"]');
@@ -225,18 +538,13 @@
         );
 
         if (authLink && profileLink) {
-          console.log("Found auth elements, updating display");
           if (isAuthenticated) {
-            console.log("User is authenticated, showing profile link");
             authLink.style.display = "none";
             profileLink.style.display = "block";
           } else {
-            console.log("User is not authenticated, showing login link");
             authLink.style.display = "block";
             profileLink.style.display = "none";
           }
-        } else {
-          console.log("Auth elements not found");
         }
 
         // Обновляем форму отзыва
@@ -246,65 +554,100 @@
         );
 
         if (authRequired && reviewFormContent) {
-          console.log("Found review form elements, updating display");
           if (isAuthenticated) {
-            console.log("User is authenticated, showing review form");
             authRequired.style.display = "none";
             reviewFormContent.style.display = "block";
+            // Загружаем список картин при показе формы
+            loadPaintings();
           } else {
-            console.log(
-              "User is not authenticated, showing auth required message"
-            );
             authRequired.style.display = "block";
             reviewFormContent.style.display = "none";
           }
-        } else {
-          console.log("Review form elements not found");
         }
-        console.log("=== END AUTH STATE UPDATE ===");
+
+        // Обновляем секцию регистрации
+        const registrationSection = document.getElementById(
+          "registration-section"
+        );
+        if (registrationSection) {
+          registrationSection.style.display = isAuthenticated
+            ? "none"
+            : "block";
+        }
       }
 
-      // Обновляем состояние при загрузке страницы
-      document.addEventListener("DOMContentLoaded", function () {
-        console.log("=== DOM LOADED ===");
-        // Не обновляем состояние здесь, так как хедер еще не загружен
-      });
+      // Функция для загрузки списка картин
+      function loadPaintings() {
+        const select = document.getElementById("painting-select");
+        select.innerHTML = '<option value="">Загрузка картин...</option>';
 
-      // Обновляем состояние после загрузки хедера
-      document.addEventListener("htmx:afterSwap", function (evt) {
-        console.log("=== HTMX AFTER SWAP ===");
-        console.log("Target ID:", evt.detail.target.id);
-        if (evt.detail.target.id === "header-container") {
-          console.log("Header loaded, updating auth state");
-          updateAuthState();
-        }
-      });
+        fetch("/api/painting", {
+          headers: {
+            "hx-target": "painting-select",
+          },
+        })
+          .then((response) => response.text())
+          .then((html) => {
+            select.innerHTML = html;
+          })
+          .catch((error) => {
+            console.error("Error loading paintings:", error);
+            select.innerHTML =
+              '<option value="">Ошибка загрузки картин</option>';
+          });
+      }
 
-      // Обновляем состояние при успешной авторизации
-      document.addEventListener("htmx:afterRequest", function (evt) {
-        console.log("=== HTMX AFTER REQUEST ===");
-        console.log("Path:", evt.detail.pathInfo.requestPath);
-        console.log("Success:", evt.detail.successful);
-        console.log("Response:", evt.detail.xhr.response);
+      // Обновляем состояние при загрузке
+      updateAuthState();
 
-        if (
-          evt.detail.pathInfo.requestPath === "/api/auth/login" &&
-          evt.detail.successful
-        ) {
-          console.log("Login successful, updating auth state");
-          // Обновляем хедер через HTMX
-          const headerContainer = document.getElementById("header-container");
-          if (headerContainer) {
-            console.log("Refreshing header via HTMX");
-            htmx.ajax("GET", "/partials/header.html", {
-              target: "#header-container",
-              swap: "innerHTML",
-            });
+      // Добавляем обработчик отправки формы
+      document
+        .getElementById("review-form")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          // Получаем данные формы
+          const formData = new FormData(this);
+          const comment = formData.get("comment");
+          const id_p = formData.get("id_p");
+
+          // Получаем id_u из куки
+          const cookies = document.cookie.split(";");
+          let id_u = null;
+          for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split("=");
+            if (name === "userId") {
+              id_u = value;
+              break;
+            }
           }
-          // Обновляем состояние после небольшой задержки
-          setTimeout(updateAuthState, 100);
-        }
-      });
+
+          // Отправляем запрос
+          fetch("/api/review", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({
+              comment,
+              id_p,
+              id_u: parseInt(id_u),
+            }),
+          })
+            .then((response) => response.text())
+            .then((text) => {
+              if (text.includes("success")) {
+                window.location.href = "/?review=success";
+              } else {
+                alert(text);
+              }
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert("Ошибка при отправке отзыва");
+            });
+        });
     </script>
   </body>
 </html>

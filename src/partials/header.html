@@ -21,3 +21,22 @@
     </nav>
   </div>
 </header>
+
+<script>
+  // Обновляем состояние при загрузке
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isAuthenticated = !!user;
+
+  const authLink = document.querySelector('[data-auth-element="login"]');
+  const profileLink = document.querySelector('[data-auth-element="profile"]');
+
+  if (authLink && profileLink) {
+    if (isAuthenticated) {
+      authLink.style.display = "none";
+      profileLink.style.display = "block";
+    } else {
+      authLink.style.display = "block";
+      profileLink.style.display = "none";
+    }
+  }
+</script>

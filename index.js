@@ -3,97 +3,17 @@ const sqlite3 = require("sqlite3").verbose();
 const fs = require("fs");
 const path = require("path");
 const cookieParser = require("cookie-parser");
+const bcrypt = require("bcrypt");
 
-// Create Express app
-const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser());
-
-// Serve static files
-app.use(express.static(path.join(__dirname, "src")));
-app.use("/static", express.static(path.join(__dirname, "src/static")));
-app.use("/js", express.static(path.join(__dirname, "src/js")));
-
-// Set view engine
-app.set("view engine", "html");
-app.engine("html", (filePath, options, callback) => {
-  fs.readFile(filePath, (err, content) => {
-    if (err) return callback(err);
-    let rendered = content.toString();
-    for (const [key, value] of Object.entries(options)) {
-      rendered = rendered.replace(new RegExp(`{{${key}}}`, "g"), value);
-    }
-    return callback(null, rendered);
-  });
-});
-
-// Middleware для проверки авторизации
-app.use(async (req, res, next) => {
-  if (req.cookies.userId) {
-    try {
-      const users = await db.read("users", { id_u: req.cookies.userId });
-      if (users.length > 0) {
-        req.user = users[0];
-        res.locals.user = users[0];
-      }
-    } catch (err) {
-      res.status(500).send("Internal Server Error");
-    }
-  }
-  next();
-});
+console.log("=== SERVER STARTUP ===");
+console.log("Current directory:", __dirname);
+console.log("Database path:", path.join(__dirname, "database.sqlite"));
 
 // Database wrapper class
 class Database {
   constructor(dbPath) {
+    console.log("Initializing database at:", dbPath);
     this.db = new sqlite3.Database(dbPath);
-  }
-
-  // Initialize database from dump file
-  async initFromDump(dumpPath) {
-    const dump = fs.readFileSync(dumpPath, "utf8");
-    const statements = dump.split(";").filter((stmt) => stmt.trim());
-
-    return new Promise((resolve, reject) => {
-      this.db.serialize(() => {
-        this.db.run("PRAGMA foreign_keys = ON");
-
-        // Проверяем существование таблиц
-        this.db.get(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name='painting'",
-          (err, row) => {
-            if (err) {
-              reject(err);
-              return;
-            }
-
-            // Если таблица painting существует, значит все таблицы уже созданы
-            if (row) {
-              console.log(
-                "Database tables already exist, skipping initialization"
-              );
-              resolve();
-              return;
-            }
-
-            // Если таблиц нет, создаем их
-            statements.forEach((statement) => {
-              if (statement.trim()) {
-                this.db.run(statement, (err) => {
-                  if (err) {
-                    console.error("Error executing statement:", err);
-                    reject(err);
-                  }
-                });
-              }
-            });
-
-            resolve();
-          }
-        );
-      });
-    });
   }
 
   // CRUD operations
@@ -197,54 +117,131 @@ class Database {
   }
 }
 
-// Routes for HTML files
-app.get("/", (req, res) => {
-  console.log("GET / - Serving index.html");
-  res.sendFile(path.join(__dirname, "src", "index.html"));
-});
+// Create Express app
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-app.get("/partials/header.html", (req, res) => {
-  console.log("GET /partials/header.html - Serving header partial");
-  res.sendFile(path.join(__dirname, "src", "partials", "header.html"));
-});
+// Serve static files
+app.use(express.static(path.join(__dirname, "src")));
+app.use("/static", express.static(path.join(__dirname, "src/static")));
+app.use("/js", express.static(path.join(__dirname, "src/js")));
 
-app.get("/catalog", (req, res) => {
-  console.log("GET /catalog - Serving catalog.html");
-  res.sendFile(path.join(__dirname, "src", "catalog.html"));
-});
-
-app.get("/auth", (req, res) => {
-  console.log("GET /auth - Serving auth.html");
-  res.sendFile(path.join(__dirname, "src", "auth.html"));
-});
-
-app.get("/profile", (req, res) => {
-  console.log("GET /profile - Checking auth");
-  const userId = req.cookies.userId;
-  if (!userId) {
-    console.log("No userId cookie, redirecting to auth");
-    return res.redirect("/auth");
-  }
-  console.log("User authenticated, serving profile.html");
-  res.sendFile(path.join(__dirname, "src", "profile.html"));
+// Set view engine
+app.set("view engine", "html");
+app.engine("html", (filePath, options, callback) => {
+  fs.readFile(filePath, (err, content) => {
+    if (err) return callback(err);
+    let rendered = content.toString();
+    for (const [key, value] of Object.entries(options)) {
+      rendered = rendered.replace(new RegExp(`{{${key}}}`, "g"), value);
+    }
+    return callback(null, rendered);
+  });
 });
 
 // Initialize database
 const db = new Database("database.sqlite");
 
-// Initialize database from dump file
-db.initFromDump("dump.sql")
-  .then(() => {
-    console.log("Database initialized successfully");
-  })
-  .catch((err) => {
-    // Если таблицы уже существуют, это не критическая ошибка
-    if (err.message.includes("already exists")) {
-      console.log("Database tables already exist, continuing...");
-    } else {
-      console.error("Error initializing database:", err);
+// Middleware для проверки авторизации
+app.use(async (req, res, next) => {
+  if (req.cookies.userId) {
+    try {
+      const users = await db.read("users", { id_u: req.cookies.userId });
+      if (users.length > 0) {
+        req.user = users[0];
+        res.locals.user = users[0];
+      }
+    } catch (err) {
+      res.status(500).send("Internal Server Error");
     }
-  });
+  }
+  next();
+});
+
+// Routes for HTML files
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "src", "index.html"));
+});
+
+app.get("/partials/header.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "src", "partials", "header.html"));
+});
+
+app.get("/catalog", (req, res) => {
+  res.sendFile(path.join(__dirname, "src", "catalog.html"));
+});
+
+app.get("/auth", (req, res) => {
+  res.sendFile(path.join(__dirname, "src", "auth.html"));
+});
+
+app.get("/profile", (req, res) => {
+  const userId = req.cookies.userId;
+  if (!userId) {
+    return res.redirect("/auth");
+  }
+  res.sendFile(path.join(__dirname, "src", "profile.html"));
+});
+
+// Review route
+app.post("/api/review", async (req, res) => {
+  try {
+    const { comment, id_p, id_u } = req.body;
+    const userId = id_u || req.cookies.userId;
+
+    if (!userId) {
+      return res
+        .status(401)
+        .send('<div class="error">Необходимо авторизоваться</div>');
+    }
+
+    if (!comment || !id_p) {
+      return res
+        .status(400)
+        .send(
+          '<div class="error">Текст отзыва и выбор картины обязательны</div>'
+        );
+    }
+
+    const userCheck = await db.read("users", { id_u: parseInt(userId) });
+    if (!userCheck || userCheck.length === 0) {
+      return res
+        .status(401)
+        .send('<div class="error">Пользователь не найден</div>');
+    }
+
+    const paintingCheck = await db.read("painting", { id_p: parseInt(id_p) });
+    if (!paintingCheck || paintingCheck.length === 0) {
+      return res
+        .status(400)
+        .send('<div class="error">Картина не найдена</div>');
+    }
+
+    const query = `INSERT INTO review (id_u, id_p, comment, review_date) VALUES (?, ?, ?, ?)`;
+    const values = [
+      parseInt(userId),
+      parseInt(id_p),
+      comment,
+      new Date().toISOString(),
+    ];
+
+    db.db.run(query, values, function (err) {
+      if (err) {
+        res
+          .status(500)
+          .send('<div class="error">Ошибка при добавлении отзыва</div>');
+      } else {
+        res.redirect("/?review=success");
+      }
+    });
+  } catch (err) {
+    res
+      .status(500)
+      .send('<div class="error">Ошибка при добавлении отзыва</div>');
+  }
+});
 
 // Example routes
 app.post("/api/:table", async (req, res) => {
@@ -277,23 +274,18 @@ app.delete("/api/:table", async (req, res) => {
 
 // Painting routes
 app.get("/api/painting", async (req, res) => {
-  console.log("GET /api/painting - Fetching paintings");
   try {
     const paintings = await db.read("painting", req.query);
-    console.log("Found paintings:", paintings.length);
 
-    // Если это запрос для select, возвращаем options
     if (req.headers["hx-target"] === "painting-select") {
-      console.log("Returning select options");
       let html = '<option value="">Выберите картину</option>';
       for (const painting of paintings) {
-        html += `<option value="${painting.id_p}">${painting.title}</option>`;
+        html += `<option value="${painting.id_p}">${painting.title} - ${painting.author} (${painting.price}₽)</option>`;
       }
       res.set("Content-Type", "text/html");
       return res.send(html);
     }
 
-    // Иначе возвращаем карточки картин
     const templatePath = path.join(
       __dirname,
       "src",
@@ -314,22 +306,19 @@ app.get("/api/painting", async (req, res) => {
     res.set("Content-Type", "text/html");
     res.send(html);
   } catch (err) {
-    console.error("Error in /api/painting:", err);
     res.status(500).send("Error rendering template");
   }
 });
 
-// Reviews route
-app.get("/api/reviews", async (req, res) => {
-  console.log("GET /api/reviews - Fetching reviews");
+// Review route
+app.get("/api/review", async (req, res) => {
   try {
-    const reviews = await db.read(
+    const review = await db.read(
       "review",
       req.query,
-      "review.*, users.first_name, users.last_name",
-      "LEFT JOIN users ON review.id_u = users.id_u"
+      "review.*, users.first_name, users.last_name, painting.title",
+      "LEFT JOIN users ON review.id_u = users.id_u LEFT JOIN painting ON review.id_p = painting.id_p ORDER BY review.review_date DESC"
     );
-    console.log("Found reviews:", reviews.length);
 
     const templatePath = path.join(
       __dirname,
@@ -340,9 +329,9 @@ app.get("/api/reviews", async (req, res) => {
     const template = fs.readFileSync(templatePath, "utf8");
 
     let html = "";
-    for (const review of reviews) {
+    for (const r of review) {
       let cardHtml = template;
-      for (const [key, value] of Object.entries(review)) {
+      for (const [key, value] of Object.entries(r)) {
         cardHtml = cardHtml.replace(new RegExp(`{{${key}}}`, "g"), value || "");
       }
       html += cardHtml;
@@ -351,22 +340,17 @@ app.get("/api/reviews", async (req, res) => {
     res.set("Content-Type", "text/html");
     res.send(html);
   } catch (err) {
-    console.error("Error in /api/reviews:", err);
     res.status(500).send("Error rendering template");
   }
 });
 
 // Auth routes
 app.post("/api/auth/register", async (req, res) => {
-  console.log("POST /api/auth/register - Attempting registration");
   try {
     const { first_name, last_name, email, password } = req.body;
-    console.log("Registration data:", { first_name, last_name, email });
 
-    // Проверяем, существует ли пользователь
     const existingUser = await db.read("users", { email });
     if (existingUser.length > 0) {
-      console.log("User already exists:", email);
       return res
         .status(400)
         .send(
@@ -374,104 +358,57 @@ app.post("/api/auth/register", async (req, res) => {
         );
     }
 
-    // Создаем нового пользователя
     const userId = await db.create("users", {
       first_name,
       last_name,
       email,
       password,
     });
-    console.log("User created successfully, id:", userId);
 
     res.send(
       '<div class="success">Регистрация успешна! Теперь вы можете войти.</div>'
     );
   } catch (err) {
-    console.error("Registration error:", err);
     res.status(500).send('<div class="error">Ошибка при регистрации</div>');
   }
 });
 
-app.post("/api/auth/login", async (req, res) => {
-  console.log("POST /api/auth/login - Attempting login");
+app.post("/api/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    console.log("Login attempt for:", email);
+    const user = await db.read("users", { email });
 
-    // Ищем пользователя
-    const users = await db.read("users", { email, password });
-    console.log(
-      "Login query result:",
-      users.length > 0 ? "User found" : "User not found"
-    );
-
-    if (users.length === 0) {
-      return res
-        .status(400)
-        .send('<div class="error">Неверный email или пароль</div>');
+    if (!user || user.length === 0) {
+      return res.status(401).send("Неверный email или пароль");
     }
 
-    // Устанавливаем куки с ID пользователя
-    res.cookie("userId", users[0].id_u, {
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 часа
-    });
-    console.log("Login successful, cookie set for user:", users[0].id_u);
+    const hashedPassword = user[0].password;
+    const match = await bcrypt.compare(password, hashedPassword);
 
-    res.send('<div class="success">Вход выполнен успешно!</div>');
+    if (!match) {
+      return res.status(401).send("Неверный email или пароль");
+    }
+
+    const userId = user[0].id_u;
+
+    res.cookie("userId", userId, {
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    });
+
+    res.json({ success: true, user: { id: userId, email: user[0].email } });
   } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).send('<div class="error">Ошибка при входе</div>');
+    res.status(500).send("Ошибка при входе");
   }
 });
 
 // Auth check endpoint
 app.get("/api/auth/check", (req, res) => {
-  console.log("GET /api/auth/check - Checking auth status");
   const isAuthenticated = !!req.cookies.userId;
-  console.log("Auth status:", isAuthenticated);
   res.json({ authenticated: isAuthenticated });
-});
-
-// Review routes
-app.post("/api/reviews", async (req, res) => {
-  console.log("POST /api/reviews - Attempting to create review");
-  try {
-    const userId = req.cookies.userId;
-    console.log("Review request from user:", userId);
-
-    if (!userId) {
-      console.log("No userId cookie, unauthorized");
-      return res
-        .status(401)
-        .send('<div class="error">Необходимо авторизоваться</div>');
-    }
-
-    const { painting_id, comment } = req.body;
-    console.log("Review data:", { painting_id, comment });
-
-    if (!painting_id || !comment) {
-      console.log("Missing required fields");
-      return res
-        .status(400)
-        .send('<div class="error">Все поля обязательны</div>');
-    }
-
-    const reviewId = await db.create("review", {
-      id_p: painting_id,
-      id_u: userId,
-      comment,
-      review_date: new Date().toISOString(),
-    });
-    console.log("Review created successfully, id:", reviewId);
-
-    res.send('<div class="success">Отзыв успешно добавлен!</div>');
-  } catch (err) {
-    console.error("Error creating review:", err);
-    res
-      .status(500)
-      .send('<div class="error">Ошибка при добавлении отзыва</div>');
-  }
 });
 
 // Start server
@@ -485,15 +422,12 @@ function onRegisterSuccess(event) {
     event.detail.xhr &&
     event.detail.xhr.responseText.includes("Регистрация успешна")
   ) {
-    // Переключаем на форму входа
     toggleForms();
-    // Очищаем поля регистрации
     document.getElementById("register-first-name").value = "";
     document.getElementById("register-last-name").value = "";
     document.getElementById("register-email").value = "";
     document.getElementById("register-password").value = "";
     document.getElementById("register-phone").value = "";
-    // Показываем сообщение
     document.getElementById("auth-message").className = "success";
   }
 }

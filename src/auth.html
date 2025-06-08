@@ -30,98 +30,22 @@
     <section class="auth-section">
       <div class="container">
         <div class="auth-container">
-          <!-- Login Form -->
-          <div class="auth-form" id="login-form">
-            <h2>Вход</h2>
-            <form
-              hx-post="/api/auth/login"
-              hx-target="#auth-message"
-              hx-swap="innerHTML"
-              hx-on::after-request="if(event.detail.successful) window.location.href='/'"
-            >
-              <div class="form-group">
-                <label for="login-email">Email</label>
-                <input type="email" id="login-email" name="email" required />
-              </div>
-              <div class="form-group">
-                <label for="login-password">Пароль</label>
-                <input
-                  type="password"
-                  id="login-password"
-                  name="password"
-                  required
-                />
-              </div>
-              <button type="submit" class="registration-button">Войти</button>
-            </form>
-            <p class="auth-switch">
-              Нет аккаунта?
-              <a href="#" class="toggle-form">Зарегистрироваться</a>
-            </p>
-          </div>
-
-          <!-- Register Form -->
-          <div class="auth-form" id="register-form" style="display: none">
-            <h2>Регистрация</h2>
-            <form
-              hx-post="/api/auth/register"
-              hx-target="#auth-message"
-              hx-on:afterOnLoad="onRegisterSuccess(event)"
-            >
-              <div class="form-group">
-                <label for="register-first-name"
-                  >Имя <span style="color: red">*</span></label
-                >
-                <input
-                  type="text"
-                  id="register-first-name"
-                  name="first_name"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label for="register-last-name"
-                  >Фамилия <span style="color: red">*</span></label
-                >
-                <input
-                  type="text"
-                  id="register-last-name"
-                  name="last_name"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label for="register-email"
-                  >Email <span style="color: red">*</span></label
-                >
-                <input type="email" id="register-email" name="email" required />
-              </div>
-              <div class="form-group">
-                <label for="register-password"
-                  >Пароль <span style="color: red">*</span></label
-                >
-                <input
-                  type="password"
-                  id="register-password"
-                  name="password"
-                  required
-                />
-              </div>
-              <div class="form-group">
-                <label for="register-phone">Телефон</label>
-                <input type="text" id="register-phone" name="phone" />
-              </div>
-              <button type="submit" class="registration-button">
-                Зарегистрироваться
-              </button>
-            </form>
-            <p class="auth-switch">
-              Уже есть аккаунт? <a href="#" class="toggle-form">Войти</a>
-            </p>
-          </div>
-
-          <!-- Message Container -->
+          <h2 class="auth-title">Вход</h2>
+          <form id="login-form" onsubmit="return handleLogin(event)">
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="password">Пароль</label>
+              <input type="password" id="password" name="password" required />
+            </div>
+            <button type="submit" class="registration-button">Войти</button>
+          </form>
           <div id="auth-message"></div>
+          <p class="auth-text">
+            Нет аккаунта? <a href="/auth?register=true">Зарегистрироваться</a>
+          </p>
         </div>
       </div>
     </section>
@@ -142,5 +66,48 @@
         </div>
       </div>
     </footer>
+
+    <script>
+      async function handleLogin(event) {
+        event.preventDefault();
+        const form = event.target;
+        const messageDiv = document.getElementById("auth-message");
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: form.email.value,
+              password: form.password.value,
+            }),
+            credentials: "include", // Важно для работы с куками
+          });
+
+          const text = await response.text();
+          console.log("Server response:", text);
+
+          if (response.ok) {
+            messageDiv.innerHTML = text;
+            messageDiv.className = "success";
+            // Редирект на главную
+            setTimeout(() => {
+              window.location.href = "/";
+            }, 1000);
+          } else {
+            messageDiv.innerHTML = text;
+            messageDiv.className = "error";
+          }
+        } catch (error) {
+          console.error("Login error:", error);
+          messageDiv.textContent = "Ошибка сервера";
+          messageDiv.className = "error";
+        }
+
+        return false;
+      }
+    </script>
   </body>
 </html>
