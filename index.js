@@ -374,7 +374,7 @@ app.get("/api/painting", async (req, res) => {
     if (req.headers["hx-target"] === "painting-select") {
       let html = '<option value="">Выберите картину</option>';
       for (const painting of paintings) {
-        html += `<option value="${painting.id_p}">${painting.title} - ${painting.author} (${painting.price})</option>`;
+        html += `<option value="${painting.id_p}">${painting.title}</option>`;
       }
       res.set("Content-Type", "text/html");
       return res.send(html);
