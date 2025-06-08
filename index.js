@@ -411,6 +411,100 @@ app.get("/api/auth/check", (req, res) => {
   res.json({ authenticated: isAuthenticated });
 });
 
+// Cart routes
+app.post("/api/cart/add", async (req, res) => {
+  console.log("=== CART ADD REQUEST ===");
+  console.log("Headers:", req.headers);
+  console.log("Body:", req.body);
+  console.log("Cookies:", req.cookies);
+
+  try {
+    const { paintingId } = req.body;
+    const userId = req.cookies.userId;
+
+    console.log("Painting ID:", paintingId);
+    console.log("User ID:", userId);
+
+    if (!userId) {
+      console.log("No user ID in cookies");
+      return res.status(401).json({ error: "Необходимо авторизоваться" });
+    }
+
+    // Проверяем существование картины
+    const painting = await db.read("painting", { id_p: paintingId });
+    console.log("Found painting:", painting);
+
+    if (!painting || painting.length === 0) {
+      console.log("Painting not found");
+      return res.status(404).json({ error: "Картина не найдена" });
+    }
+
+    // Генерируем уникальный id_sc
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    const id_sc = `${timestamp}-${random}`;
+
+    // Добавляем в корзину
+    await db.create("shopping_cart", {
+      id_p: paintingId,
+      id_u: userId,
+      id_sc: id_sc,
+      dateadd: new Date().toISOString(),
+    });
+
+    console.log("Successfully added to cart");
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Error adding to cart:", err);
+    res.status(500).json({ error: "Ошибка при добавлении в корзину" });
+  }
+  console.log("=== END CART ADD REQUEST ===");
+});
+
+app.get("/api/cart", async (req, res) => {
+  console.log("=== CART GET REQUEST ===");
+  console.log("Headers:", req.headers);
+  console.log("Cookies:", req.cookies);
+
+  try {
+    const userId = req.cookies.userId;
+    console.log("User ID:", userId);
+
+    if (!userId) {
+      console.log("No user ID in cookies");
+      return res.status(401).json({ error: "Необходимо авторизоваться" });
+    }
+
+    const cart = await db.read(
+      "shopping_cart",
+      { id_u: userId },
+      "shopping_cart.*, painting.title, painting.price, painting.image",
+      "LEFT JOIN painting ON shopping_cart.id_p = painting.id_p"
+    );
+    console.log("Found cart items:", cart);
+
+    res.json(cart);
+  } catch (err) {
+    console.error("Error getting cart:", err);
+    res.status(500).json({ error: "Ошибка при получении корзины" });
+  }
+  console.log("=== END CART GET REQUEST ===");
+});
+
+app.delete("/api/cart/:id_sc", async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Необходимо авторизоваться" });
+    }
+
+    await db.delete("shopping_cart", { id_sc: req.params.id_sc, id_u: userId });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Ошибка при удалении из корзины" });
+  }
+});
+
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -45,7 +45,7 @@
       hx-target="this"
       hx-indicator="#header-container"
     ></div>
-    
+
     <!-- Catalog Header -->
     <section class="catalog-header">
       <div class="container">
@@ -129,4 +129,81 @@
       </div>
     </footer>
   </body>
+  <script>
+    // === КОРЗИНА ===
+    async function addToCart(paintingId) {
+      console.log("=== ADD TO CART ===");
+      console.log("Painting ID:", paintingId);
+      try {
+        console.log("Sending request to /api/cart/add");
+        const response = await fetch("/api/cart/add", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({ paintingId }),
+        });
+
+        console.log("Response status:", response.status);
+        const data = await response.json();
+        console.log("Response data:", data);
+
+        if (!response.ok) {
+          throw new Error(data.error || "Ошибка при добавлении в корзину");
+        }
+
+        // Обновляем счетчик корзины
+        await updateCartCount();
+      } catch (error) {
+        console.error("Error:", error);
+        alert(error.message);
+      }
+      console.log("=== END ADD TO CART ===");
+    }
+
+    async function updateCartCount() {
+      console.log("=== UPDATE CART COUNT ===");
+      try {
+        console.log("Sending request to /api/cart");
+        const response = await fetch("/api/cart", {
+          credentials: "include",
+        });
+
+        console.log("Response status:", response.status);
+        const cart = await response.json();
+        console.log("Cart data:", cart);
+
+        if (!response.ok) {
+          throw new Error("Ошибка при получении корзины");
+        }
+
+        const cartCountEl = document.getElementById("cart-count");
+        if (cartCountEl) {
+          if (cart.length > 0) {
+            cartCountEl.textContent = `(${cart.length})`;
+            cartCountEl.style.display = "";
+          } else {
+            cartCountEl.style.display = "none";
+          }
+        }
+      } catch (error) {
+        console.error("Error:", error);
+      }
+      console.log("=== END UPDATE CART COUNT ===");
+    }
+
+    // Навешиваем обработчик на кнопки заказа
+    document.addEventListener("click", function (e) {
+      if (e.target.classList.contains("add-to-cart-btn")) {
+        console.log("Add to cart button clicked");
+        const paintingId = e.target.getAttribute("data-painting-id");
+        console.log("Button data-painting-id:", paintingId);
+        addToCart(paintingId);
+      }
+    });
+
+    // Обновляем счетчик корзины при загрузке страницы
+    updateCartCount();
+  </script>
 </html>
