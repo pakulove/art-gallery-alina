@@ -37,20 +37,15 @@
   </head>
   <body>
     <!-- Header -->
-    <header class="header">
-      <div class="container">
-        <a href="index.html" class="logo">
-          <img src="static/svg/main_logo.svg" alt="ARTLUMEN logo" />
-        </a>
-        <nav class="nav">
-          <a href="/catalog" class="nav-link">Каталог</a>
-          <a href="#" class="nav-link">Мероприятия</a>
-          <a href="/" class="nav-link">Корзина</a>
-          <a href="/auth" class="nav-link">Войти</a>
-        </nav>
-      </div>
-    </header>
-
+    <div
+      id="header-container"
+      hx-get="/partials/header.html"
+      hx-trigger="load"
+      hx-swap="innerHTML"
+      hx-target="this"
+      hx-indicator="#header-container"
+    ></div>
+    
     <!-- Catalog Header -->
     <section class="catalog-header">
       <div class="container">
