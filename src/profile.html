@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Профиль - ARTLUMEN</title>
+    <link rel="stylesheet" href="static/css/styles.css" />
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  </head>
+  <body>
+    <!-- Header -->
+    <div id="header" hx-get="/partials/header.html" hx-trigger="load"></div>
+
+    <!-- Profile Section -->
+    <section class="profile-section">
+      <div class="container">
+        <h1 class="section-title">Мой профиль</h1>
+
+        <div class="profile-content">
+          <!-- User Info -->
+          <div class="profile-info">
+            <h2>Информация о пользователе</h2>
+            <div class="info-card">
+              <div class="info-row">
+                <span>Имя:</span>
+                <span id="user-first-name"></span>
+              </div>
+              <div class="info-row">
+                <span>Фамилия:</span>
+                <span id="user-last-name"></span>
+              </div>
+              <div class="info-row">
+                <span>Email:</span>
+                <span id="user-email"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Orders -->
+          <div class="orders-section">
+            <h2>Мои заказы</h2>
+            <div id="orders-list" class="orders-list">
+              <!-- Orders will be loaded here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <script>
+      // Загрузка информации о пользователе
+      async function loadUserInfo() {
+        try {
+          const response = await fetch("/api/user/info", {
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error("Ошибка при получении информации о пользователе");
+          }
+
+          const user = await response.json();
+          document.getElementById("user-first-name").textContent =
+            user.first_name;
+          document.getElementById("user-last-name").textContent =
+            user.last_name;
+          document.getElementById("user-email").textContent = user.email;
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      // Загрузка заказов пользователя
+      async function loadOrders() {
+        try {
+          const response = await fetch("/api/orders", {
+            credentials: "include",
+          });
+
+          if (!response.ok) {
+            throw new Error("Ошибка при получении заказов");
+          }
+
+          const orders = await response.json();
+          const ordersListEl = document.getElementById("orders-list");
+
+          if (orders.length === 0) {
+            ordersListEl.innerHTML =
+              '<p class="empty-orders">У вас пока нет заказов</p>';
+            return;
+          }
+
+          let html = "";
+          for (const order of orders) {
+            html += `
+              <div class="order-card">
+                <div class="order-header">
+                  <div class="order-info">
+                    <h3>Заказ #${order.id_o}</h3>
+                    <p class="order-date">${new Date(
+                      order.date
+                    ).toLocaleDateString()}</p>
+                  </div>
+                  <div class="order-status ${order.status}">${getStatusText(
+              order.status
+            )}</div>
+                </div>
+                <div class="order-details">
+                  <div class="detail-row">
+                    <span>Адрес доставки:</span>
+                    <span>${order.addressship}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span>Способ оплаты:</span>
+                    <span>${order.payment}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span>Сумма заказа:</span>
+                    <span>${order.total_price} ₽</span>
+                  </div>
+                </div>
+                <div class="order-items">
+                  ${order.items
+                    .map(
+                      (item) => `
+                    <div class="order-item">
+                      <img src="${item.image}" alt="${item.title}" class="order-item-image">
+                      <div class="order-item-details">
+                        <h4>${item.title}</h4>
+                        <p>${item.price} ₽</p>
+                      </div>
+                    </div>
+                  `
+                    )
+                    .join("")}
+                </div>
+              </div>
+            `;
+          }
+
+          ordersListEl.innerHTML = html;
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
+      function getStatusText(status) {
+        const statusMap = {
+          pending: "В обработке",
+          processing: "В пути",
+          completed: "Доставлен",
+          cancelled: "Отменён",
+        };
+        return statusMap[status] || status;
+      }
+
+      // Загружаем данные при загрузке страницы
+      loadUserInfo();
+      loadOrders();
+    </script>
+
+    <style>
+      .profile-section {
+        padding: 60px 0;
+      }
+
+      .section-title {
+        font-size: 2.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .profile-content {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .profile-info {
+        margin-bottom: 3rem;
+      }
+
+      .profile-info h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .info-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #eee;
+      }
+
+      .info-row:last-child {
+        border-bottom: none;
+      }
+
+      .info-row span:first-child {
+        color: #666;
+      }
+
+      .orders-section h2 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+      }
+
+      .order-card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+      }
+
+      .order-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+      }
+
+      .order-info h3 {
+        margin: 0;
+        font-size: 1.2rem;
+      }
+
+      .order-date {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0.25rem 0 0 0;
+      }
+
+      .order-status {
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+      }
+
+      .order-status.pending {
+        background: #fff3cd;
+        color: #856404;
+      }
+
+      .order-status.processing {
+        background: #cce5ff;
+        color: #004085;
+      }
+
+      .order-status.completed {
+        background: #d4edda;
+        color: #155724;
+      }
+
+      .order-status.cancelled {
+        background: #f8d7da;
+        color: #721c24;
+      }
+
+      .order-details {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+      }
+
+      .detail-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+      }
+
+      .detail-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .detail-row span:first-child {
+        color: #666;
+      }
+
+      .order-items {
+        padding: 1rem;
+      }
+
+      .order-item {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem 0;
+      }
+
+      .order-item:not(:last-child) {
+        border-bottom: 1px solid #eee;
+      }
+
+      .order-item-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+        margin-right: 1rem;
+      }
+
+      .order-item-details h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 1rem;
+      }
+
+      .order-item-details p {
+        margin: 0;
+        color: #666;
+      }
+
+      .empty-orders {
+        text-align: center;
+        color: #666;
+        font-size: 1.2rem;
+        padding: 2rem;
+      }
+    </style>
+  </body>
+</html>

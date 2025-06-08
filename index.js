@@ -33,7 +33,7 @@ class Database {
     });
   }
 
-  async read(table, conditions = {}, columns = "*", join = "") {
+  async read(table, conditions = {}, columns = "*", additionalSQL = "") {
     let whereClause = "";
     const values = [];
 
@@ -75,7 +75,14 @@ class Database {
     }
 
     return new Promise((resolve, reject) => {
-      const query = `SELECT ${columns} FROM ${table} ${join} ${whereClause}`;
+      // Разделяем additionalSQL на JOIN и остальное
+      const joinMatch = additionalSQL.match(
+        /(LEFT|INNER|RIGHT)?\s*JOIN.*?(?=WHERE|ORDER BY|$)/i
+      );
+      const joinClause = joinMatch ? joinMatch[0] : "";
+      const restSQL = additionalSQL.replace(joinClause, "").trim();
+
+      const query = `SELECT ${columns} FROM ${table} ${joinClause} ${whereClause} ${restSQL}`;
       this.db.all(query, values, (err, rows) => {
         if (err) reject(err);
         else resolve(rows);
@@ -284,7 +291,7 @@ app.get("/api/painting", async (req, res) => {
     if (req.headers["hx-target"] === "painting-select") {
       let html = '<option value="">Выберите картину</option>';
       for (const painting of paintings) {
-        html += `<option value="${painting.id_p}">${painting.title} - ${painting.author} (${painting.price}₽)</option>`;
+        html += `<option value="${painting.id_p}">${painting.title} - ${painting.author} (${painting.price})</option>`;
       }
       res.set("Content-Type", "text/html");
       return res.send(html);
@@ -506,6 +513,131 @@ app.delete("/api/cart/:id_sc", async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Ошибка при удалении из корзины" });
+  }
+});
+
+// User info route
+app.get("/api/user/info", async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Необходимо авторизоваться" });
+    }
+
+    const user = await db.read("users", { id_u: userId });
+    if (!user || user.length === 0) {
+      return res.status(404).json({ error: "Пользователь не найден" });
+    }
+
+    // Не отправляем пароль
+    const { password, ...userInfo } = user[0];
+    res.json(userInfo);
+  } catch (err) {
+    res
+      .status(500)
+      .json({ error: "Ошибка при получении информации о пользователе" });
+  }
+});
+
+// Orders route
+app.get("/api/orders", async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Необходимо авторизоваться" });
+    }
+
+    console.log("Getting orders for user:", userId);
+
+    // Получаем заказы пользователя
+    const orders = await db.read(
+      '"order"',
+      { id_u: userId },
+      "*",
+      "ORDER BY date DESC"
+    );
+
+    console.log("Found orders:", orders);
+
+    // Для каждого заказа получаем его товары
+    for (const order of orders) {
+      const items = await db.read(
+        "order_items",
+        { id_o: order.id_o },
+        "order_items.*, painting.title, painting.price, painting.image",
+        "LEFT JOIN painting ON order_items.id_p = painting.id_p"
+      );
+      console.log("Found items for order", order.id_o, ":", items);
+      order.items = items;
+    }
+
+    res.json(orders);
+  } catch (err) {
+    console.error("Error getting orders:", err);
+    res.status(500).json({ error: "Ошибка при получении заказов" });
+  }
+});
+
+// Create order route
+app.post("/api/order/create", async (req, res) => {
+  try {
+    const userId = req.cookies.userId;
+    if (!userId) {
+      return res.status(401).json({ error: "Необходимо авторизоваться" });
+    }
+
+    const { addressship, payment, total_price } = req.body;
+
+    // Получаем товары из корзины
+    const cartItems = await db.read(
+      "shopping_cart",
+      { id_u: userId },
+      "shopping_cart.*, painting.price",
+      "LEFT JOIN painting ON shopping_cart.id_p = painting.id_p"
+    );
+
+    if (!cartItems || cartItems.length === 0) {
+      return res.status(400).json({ error: "Корзина пуста" });
+    }
+
+    // Очищаем цену от символа валюты и пробелов
+    const cleanPrice = total_price.replace(/[^\d]/g, "");
+
+    // Создаем заказ
+    const orderId = await db.create('"order"', {
+      id_u: userId,
+      date: new Date().toISOString(),
+      status: "pending",
+      addressship,
+      payment,
+      total_price: cleanPrice,
+    });
+
+    // Создаем записи о товарах в заказе
+    for (const item of cartItems) {
+      await db.create("order_items", {
+        id_p: item.id_p,
+        id_o: orderId,
+        quantity: 1,
+      });
+    }
+
+    // Создаем запись о транзакции
+    await db.create('"transaction"', {
+      id_o: orderId,
+      id_u: userId,
+      amount: cleanPrice,
+      date: new Date().toISOString(),
+      details: `Оплата заказа #${orderId}`,
+    });
+
+    // Очищаем корзину
+    await db.delete("shopping_cart", { id_u: userId });
+
+    res.json({ success: true, orderId });
+  } catch (err) {
+    console.error("Error creating order:", err);
+    res.status(500).json({ error: "Ошибка при создании заказа" });
   }
 });
 
