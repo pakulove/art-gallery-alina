@@ -369,7 +369,17 @@ app.delete("/api/:table", async (req, res) => {
 // Painting routes
 app.get("/api/painting", async (req, res) => {
   try {
-    const paintings = await db.read("painting", req.query);
+    const query = req.query;
+
+    // Handle author filter
+    if (query.author) {
+      const [lastName, firstName] = query.author.split(" ");
+      query.artist_last_name = lastName;
+      query.artist_first_name = firstName;
+      delete query.author;
+    }
+
+    const paintings = await db.read("painting", query);
 
     if (req.headers["hx-target"] === "painting-select") {
       let html = '<option value="">Выберите картину</option>';
@@ -896,6 +906,42 @@ app.get("/api/events", async (req, res) => {
   } catch (err) {
     console.error("Error getting events:", err);
     res.status(500).json({ error: "Ошибка при получении мероприятий" });
+  }
+});
+
+// Authors route
+app.get("/api/authors", async (req, res) => {
+  try {
+    const query = `
+      SELECT DISTINCT artist_first_name, artist_last_name 
+      FROM painting 
+      WHERE artist_first_name IS NOT NULL 
+      AND artist_last_name IS NOT NULL 
+      ORDER BY artist_last_name, artist_first_name
+    `;
+
+    const authors = await new Promise((resolve, reject) => {
+      db.db.all(query, [], (err, rows) => {
+        if (err) {
+          console.error("Error in authors query:", err);
+          reject(err);
+        } else {
+          resolve(rows || []);
+        }
+      });
+    });
+
+    let html = '<option value="">Все авторы</option>';
+    for (const author of authors) {
+      const fullName = `${author.artist_last_name} ${author.artist_first_name}`;
+      html += `<option value="${fullName}">${fullName}</option>`;
+    }
+
+    res.set("Content-Type", "text/html");
+    res.send(html);
+  } catch (err) {
+    console.error("Error getting authors:", err);
+    res.status(500).send("Ошибка при получении авторов");
   }
 });
 

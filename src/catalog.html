@@ -8,6 +8,55 @@
     <meta name="keywords" content="Каталог, картины, искусство" />
     <link rel="stylesheet" href="static/css/styles.css" />
     <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+      /* Modal styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        overflow: auto;
+      }
+
+      .modal-content {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-image {
+        max-width: 95%;
+        max-height: 95vh;
+        object-fit: contain;
+      }
+
+      .close-modal {
+        position: fixed;
+        top: 20px;
+        right: 30px;
+        font-size: 40px;
+        font-weight: bold;
+        color: #fff;
+        cursor: pointer;
+        transition: color 0.3s;
+        z-index: 1001;
+      }
+
+      .close-modal:hover {
+        color: #ccc;
+      }
+
+      .gallery-item {
+        cursor: pointer;
+      }
+    </style>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         console.log("HTMX loaded");
@@ -36,6 +85,14 @@
     </script>
   </head>
   <body>
+    <!-- Modal -->
+    <div id="paintingModal" class="modal">
+      <span class="close-modal">&times;</span>
+      <div class="modal-content">
+        <img id="modalImage" class="modal-image" src="" alt="" />
+      </div>
+    </div>
+
     <!-- Header -->
     <div
       id="header-container"
@@ -72,6 +129,18 @@
               <option value="Пейзаж">Пейзаж</option>
               <option value="Натюрморт">Натюрморт</option>
               <option value="Смешанная техника">Смешанная техника</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label for="author">Автор</label>
+            <select
+              id="author"
+              name="author"
+              hx-get="/api/authors"
+              hx-target="this"
+              hx-trigger="load"
+            >
+              <option value="">Все авторы</option>
             </select>
           </div>
           <div class="filter-group">
@@ -129,82 +198,120 @@
       </div>
     </footer>
     <script src="/js/auth.js"></script>
-  </body>
-  <script>
-    // === КОРЗИНА ===
-    async function addToCart(paintingId) {
-      console.log("=== ADD TO CART ===");
-      console.log("Painting ID:", paintingId);
-      try {
-        console.log("Sending request to /api/cart/add");
-        const response = await fetch("/api/cart/add", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ paintingId }),
-        });
-
-        console.log("Response status:", response.status);
-        const data = await response.json();
-        console.log("Response data:", data);
-
-        if (!response.ok) {
-          throw new Error(data.error || "Ошибка при добавлении в корзину");
+    <script>
+      // === МОДАЛЬНОЕ ОКНО ===
+      function openPaintingModal(element) {
+        // Проверяем, не была ли нажата кнопка "Заказать"
+        if (event.target.classList.contains("add-to-cart-btn")) {
+          return;
         }
 
-        // Обновляем счетчик корзины
-        await updateCartCount();
-      } catch (error) {
-        console.error("Error:", error);
-        alert(error.message);
+        const modal = document.getElementById("paintingModal");
+        const modalImage = document.getElementById("modalImage");
+
+        // Получаем данные из карточки
+        const image = element.querySelector("img").src;
+        const title = element.querySelector("img").alt;
+
+        // Заполняем модальное окно
+        modalImage.src = image;
+        modalImage.alt = title;
+
+        // Показываем модальное окно
+        modal.style.display = "block";
+
+        // Предотвращаем всплытие события клика
+        event.stopPropagation();
       }
-      console.log("=== END ADD TO CART ===");
-    }
 
-    async function updateCartCount() {
-      console.log("=== UPDATE CART COUNT ===");
-      try {
-        console.log("Sending request to /api/cart");
-        const response = await fetch("/api/cart", {
-          credentials: "include",
-        });
+      // Закрытие модального окна
+      document.querySelector(".close-modal").onclick = function () {
+        document.getElementById("paintingModal").style.display = "none";
+      };
 
-        console.log("Response status:", response.status);
-        const cart = await response.json();
-        console.log("Cart data:", cart);
-
-        if (!response.ok) {
-          throw new Error("Ошибка при получении корзины");
+      // Закрытие по клику вне модального окна
+      window.onclick = function (event) {
+        const modal = document.getElementById("paintingModal");
+        if (event.target == modal) {
+          modal.style.display = "none";
         }
+      };
 
-        const cartCountEl = document.getElementById("cart-count");
-        if (cartCountEl) {
-          if (cart.length > 0) {
-            cartCountEl.textContent = `(${cart.length})`;
-            cartCountEl.style.display = "";
-          } else {
-            cartCountEl.style.display = "none";
+      // === КОРЗИНА ===
+      async function addToCart(paintingId) {
+        console.log("=== ADD TO CART ===");
+        console.log("Painting ID:", paintingId);
+        try {
+          console.log("Sending request to /api/cart/add");
+          const response = await fetch("/api/cart/add", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            credentials: "include",
+            body: JSON.stringify({ paintingId }),
+          });
+
+          console.log("Response status:", response.status);
+          const data = await response.json();
+          console.log("Response data:", data);
+
+          if (!response.ok) {
+            throw new Error(data.error || "Ошибка при добавлении в корзину");
           }
+
+          // Обновляем счетчик корзины
+          await updateCartCount();
+        } catch (error) {
+          console.error("Error:", error);
+          alert(error.message);
         }
-      } catch (error) {
-        console.error("Error:", error);
+        console.log("=== END ADD TO CART ===");
       }
-      console.log("=== END UPDATE CART COUNT ===");
-    }
 
-    // Навешиваем обработчик на кнопки заказа
-    document.addEventListener("click", function (e) {
-      if (e.target.classList.contains("add-to-cart-btn")) {
-        console.log("Add to cart button clicked");
-        const paintingId = e.target.getAttribute("data-painting-id");
-        console.log("Button data-painting-id:", paintingId);
-        addToCart(paintingId);
+      async function updateCartCount() {
+        console.log("=== UPDATE CART COUNT ===");
+        try {
+          console.log("Sending request to /api/cart");
+          const response = await fetch("/api/cart", {
+            credentials: "include",
+          });
+
+          console.log("Response status:", response.status);
+          const cart = await response.json();
+          console.log("Cart data:", cart);
+
+          if (!response.ok) {
+            throw new Error("Ошибка при получении корзины");
+          }
+
+          const cartCountEl = document.getElementById("cart-count");
+          if (cartCountEl) {
+            if (cart.length > 0) {
+              cartCountEl.textContent = `(${cart.length})`;
+              cartCountEl.style.display = "";
+            } else {
+              cartCountEl.style.display = "none";
+            }
+          }
+        } catch (error) {
+          console.error("Error:", error);
+        }
+        console.log("=== END UPDATE CART COUNT ===");
       }
-    });
 
-    // Обновляем счетчик корзины при загрузке страницы
-    updateCartCount();
-  </script>
+      // Навешиваем обработчик на кнопки заказа
+      document.addEventListener("click", function (e) {
+        if (e.target.classList.contains("add-to-cart-btn")) {
+          console.log("Add to cart button clicked");
+          const paintingId = e.target.getAttribute("data-painting-id");
+          console.log("Button data-painting-id:", paintingId);
+          addToCart(paintingId);
+        }
+      });
+
+      // Обновляем счетчик корзины при загрузке страницы
+      updateCartCount();
+    </script>
+  </body>
 </html>
