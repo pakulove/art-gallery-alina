@@ -165,6 +165,13 @@
       </div>
     </section>
 
+    <!-- Admin Add Painting Form -->
+    <section class="admin-add-painting-section">
+      <div class="container">
+        <div id="admin-add-painting"></div>
+      </div>
+    </section>
+
     <!-- Gallery -->
     <section class="gallery">
       <div class="container">
@@ -199,6 +206,54 @@
     </footer>
     <script src="/js/auth.js"></script>
     <script>
+      document.addEventListener("DOMContentLoaded", async function () {
+        if (window.isAdmin && (await window.isAdmin())) {
+          const formHtml = `
+            <form id="add-painting-form">
+              <input type="text" name="title" placeholder="Название" required />
+              <input type="number" name="price" placeholder="Цена" required />
+              <input type="number" name="width" placeholder="Ширина (см)" required />
+              <input type="number" name="height" placeholder="Высота (см)" required />
+              <input type="text" name="style" placeholder="Стиль" required />
+              <input type="text" name="artist_last_name" placeholder="Фамилия художника" />
+              <input type="text" name="artist_first_name" placeholder="Имя художника" />
+              <input type="text" name="image" placeholder="Путь к картинке (image)" required />
+              <button type="submit">Добавить картину</button>
+            </form>
+          `;
+          document.getElementById("admin-add-painting").innerHTML = formHtml;
+          document
+            .getElementById("add-painting-form")
+            .addEventListener("submit", async function (e) {
+              e.preventDefault();
+              const form = e.target;
+              const data = {
+                title: form.title.value,
+                price: form.price.value,
+                width: form.width.value,
+                height: form.height.value,
+                style: form.style.value,
+                artist_last_name: form.artist_last_name.value,
+                artist_first_name: form.artist_first_name.value,
+                image: "static/images/" + form.image.value,
+              };
+              const resp = await fetch("/api/painting", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(data),
+              });
+              if (resp.ok) {
+                form.reset();
+                alert("Картина добавлена");
+                window.location.reload();
+              } else {
+                alert("Ошибка при добавлении картины");
+              }
+            });
+        }
+      });
+
       // === МОДАЛЬНОЕ ОКНО ===
       function openPaintingModal(element) {
         // Проверяем, не была ли нажата кнопка "Заказать"
@@ -312,6 +367,84 @@
 
       // Обновляем счетчик корзины при загрузке страницы
       updateCartCount();
+
+      // === ADMIN: Добавление картины в мероприятие через модалку ===
+      document.addEventListener("DOMContentLoaded", async function () {
+        if (window.isAdmin && (await window.isAdmin())) {
+          // Получить список мероприятий
+          let events = [];
+          try {
+            const resp = await fetch("/api/events", { credentials: "include" });
+            if (resp.ok) events = await resp.json();
+          } catch {}
+          // Для каждой карточки
+          document.querySelectorAll(".gallery-item").forEach(function (card) {
+            const paintingId = card.getAttribute("data-painting-id");
+            const dots = card.querySelector(".admin-dots");
+            if (dots) {
+              dots.style.display = "flex";
+              dots.onclick = function (e) {
+                e.stopPropagation();
+                showAdminEventModal(paintingId, events);
+              };
+            }
+          });
+        }
+      });
+
+      async function showAdminEventModal(paintingId, events) {
+        const modal = document.getElementById(
+          "admin-event-modal-" + paintingId
+        );
+        if (!modal) return;
+        let options = events
+          .map(
+            (ev) =>
+              `<option value="${ev.e_id}">${ev.name} (${new Date(
+                ev.date
+              ).toLocaleDateString()})</option>`
+          )
+          .join("");
+        modal.innerHTML = `
+          <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <form class="add-to-event-form" data-pid="${paintingId}">
+              <select name="event_id" required>${options}</select>
+              <button type="submit">Добавить в мероприятие</button>
+            </form>
+          </div>
+        `;
+        modal.style.display = "flex";
+        // Закрытие по крестику
+        modal.querySelector(".close-modal").onclick = function () {
+          modal.style.display = "none";
+        };
+        // Закрытие по клику вне модалки
+        modal.onclick = function (e) {
+          if (e.target === modal) modal.style.display = "none";
+        };
+        // Submit
+        modal.querySelector("form").onsubmit = async function (e) {
+          e.preventDefault();
+          const eventId = e.target.event_id.value;
+          const resp = await fetch("/api/event_paintings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              event_id: eventId,
+              painting_id: paintingId,
+            }),
+          });
+          if (resp.ok) {
+            alert("Картина добавлена в мероприятие");
+            modal.style.display = "none";
+            window.location.reload();
+          } else {
+            alert("Ошибка при добавлении в мероприятие");
+          }
+        };
+      }
     </script>
   </body>
 </html>

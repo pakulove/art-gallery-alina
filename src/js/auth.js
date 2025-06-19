@@ -77,7 +77,23 @@ async function updateAuthUI() {
     reviewForm.style.display = isAuthenticated ? "block" : "none";
     authRequired.style.display = isAuthenticated ? "none" : "block";
   }
+
+  // Показываем ссылку на админ-панель если админ
+  updateAdminPanelLink();
 }
 
 // Проверяем авторизацию при загрузке страницы
 document.addEventListener("DOMContentLoaded", updateAuthUI);
+
+// Проверка, является ли пользователь админом
+async function isAdmin() {
+  try {
+    const response = await fetch("/api/user/info", { credentials: "include" });
+    if (!response.ok) return false;
+    const user = await response.json();
+    return user.email === "admin@admin.ru";
+  } catch (e) {
+    return false;
+  }
+}
+window.isAdmin = isAdmin;

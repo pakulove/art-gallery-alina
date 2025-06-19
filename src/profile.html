@@ -177,12 +177,8 @@
             // Очищаем все данные из localStorage
             localStorage.clear();
 
-            console.log("Local storage cleared, updating UI");
-            // После успешного выхода обновляем UI
-            await updateAuthUI();
-
-            console.log("UI updated, redirecting to home page");
-            // И перенаправляем на главную
+            console.log("Local storage cleared, redirecting to home page");
+            // Перенаправляем на главную
             window.location.href = "/";
           } else {
             console.error("Logout failed:", response.status);

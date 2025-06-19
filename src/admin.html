@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Админ-панель</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+  </head>
+  <body>
+    <!-- Хэдер -->
+    <div id="header-container"></div>
+    <main class="container">
+      <h1 class="section-title">Админ-панель</h1>
+      <section>
+        <h2>Добавить мероприятие</h2>
+        <form id="add-event-form">
+          <input type="text" name="name" placeholder="Название" required />
+          <input type="datetime-local" name="date" required />
+          <button type="submit">Добавить</button>
+        </form>
+      </section>
+      <section>
+        <h2>Добавить картину</h2>
+        <form id="add-painting-form">
+          <input type="text" name="title" placeholder="Название" required />
+          <input type="number" name="price" placeholder="Цена" required />
+          <input
+            type="number"
+            name="width"
+            placeholder="Ширина (см)"
+            required
+          />
+          <input
+            type="number"
+            name="height"
+            placeholder="Высота (см)"
+            required
+          />
+          <input type="text" name="style" placeholder="Стиль" required />
+          <input
+            type="text"
+            name="artist_last_name"
+            placeholder="Фамилия художника"
+          />
+          <input
+            type="text"
+            name="artist_first_name"
+            placeholder="Имя художника"
+          />
+          <button type="submit">Добавить</button>
+        </form>
+      </section>
+    </main>
+    <script>
+      // Вставка хедера
+      fetch("/partials/header.html")
+        .then((r) => r.text())
+        .then((html) => {
+          document.getElementById("header-container").innerHTML = html;
+          if (typeof updateAuthUI === "function") updateAuthUI();
+        });
+    </script>
+    <script src="/js/auth.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        // Добавление мероприятия
+        document
+          .getElementById("add-event-form")
+          .addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+              name: form.name.value,
+              date: form.date.value,
+            };
+            const resp = await fetch("/api/event", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(data),
+            });
+            if (resp.ok) {
+              form.reset();
+              alert("Мероприятие добавлено");
+            } else {
+              alert("Ошибка при добавлении мероприятия");
+            }
+          });
+        // Добавление картины
+        document
+          .getElementById("add-painting-form")
+          .addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const data = {
+              title: form.title.value,
+              price: form.price.value,
+              width: form.width.value,
+              height: form.height.value,
+              style: form.style.value,
+              artist_last_name: form.artist_last_name.value,
+              artist_first_name: form.artist_first_name.value,
+            };
+            const resp = await fetch("/api/painting", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify(data),
+            });
+            if (resp.ok) {
+              form.reset();
+              alert("Картина добавлена");
+            } else {
+              alert("Ошибка при добавлении картины");
+            }
+          });
+      });
+    </script>
+  </body>
+</html>

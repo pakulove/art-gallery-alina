@@ -2,7 +2,21 @@
   class="gallery-item"
   onclick="openPaintingModal(this)"
   data-painting-id="{{id_p}}"
+  style="position: relative"
 >
+  <span
+    class="admin-dots"
+    style="
+      display: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      cursor: pointer;
+      font-size: 24px;
+      z-index: 2;
+    "
+    >&#8942;</span
+  >
   <img src="{{image}}" alt="{{title}}" />
   <h3>{{title}}</h3>
   <div class="item-details">
@@ -15,3 +29,8 @@
     </button>
   </div>
 </div>
+<div
+  id="admin-event-modal-{{id_p}}"
+  class="admin-event-modal"
+  style="display: none"
+></div>

@@ -15,6 +15,7 @@
     <section class="events-section">
       <div class="container">
         <h1 class="section-title">Мероприятия</h1>
+        <div id="admin-add-event"></div>
 
         <div id="events-list" class="events-list">
           <!-- Events will be loaded here -->
@@ -84,6 +85,48 @@
 
       // Загружаем мероприятия при загрузке страницы
       loadEvents();
+    </script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async function () {
+        if (window.isAdmin && (await window.isAdmin())) {
+          const formHtml = `
+            <form id="add-event-form">
+              <input type="text" name="name" placeholder="Название" required />
+              <input type="date" name="date" required />
+              <input type="time" name="time" required />
+              <button type="submit">Добавить мероприятие</button>
+            </form>
+          `;
+          document.getElementById("admin-add-event").innerHTML = formHtml;
+          document
+            .getElementById("add-event-form")
+            .addEventListener("submit", async function (e) {
+              e.preventDefault();
+              const form = e.target;
+              const date = form.date.value;
+              const time = form.time.value;
+              const datetime = date && time ? `${date}T${time}` : "";
+              const data = {
+                name: form.name.value,
+                date: datetime,
+              };
+              const resp = await fetch("/api/event", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify(data),
+              });
+              if (resp.ok) {
+                form.reset();
+                alert("Мероприятие добавлено");
+                window.location.reload();
+              } else {
+                alert("Ошибка при добавлении мероприятия");
+              }
+            });
+        }
+      });
     </script>
 
     <style>
