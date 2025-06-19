@@ -193,6 +193,11 @@
         overflow: hidden;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         transition: transform 0.3s;
+        width: 160px;
+        min-width: 160px;
+        height: 220px;
+        display: flex;
+        flex-direction: column;
       }
 
       .painting-item:hover {
@@ -201,12 +206,16 @@
 
       .painting-image {
         width: 100%;
-        height: 200px;
+        height: 120px;
         object-fit: cover;
       }
 
       .painting-details {
-        padding: 1rem;
+        padding: 0.5rem;
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
       }
 
       .painting-details h4 {
@@ -218,12 +227,14 @@
       .painting-details p {
         margin: 0;
         color: #666;
+        font-size: 0.9rem;
       }
 
       .painting-details .price {
         margin-top: 0.5rem;
         font-weight: 500;
         color: #333;
+        font-size: 0.95rem;
       }
 
       .empty-events {

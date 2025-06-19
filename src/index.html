@@ -428,6 +428,72 @@
         color: #721c24;
         background-color: #f8d7da;
       }
+
+      .paintings-row {
+        display: flex;
+        flex-direction: row;
+        gap: 4vw;
+        justify-content: flex-start;
+        align-items: flex-start;
+      }
+      .paintings-row .program-card {
+        width: 48vw;
+        max-width: 700px;
+        min-width: 320px;
+        height: 750px;
+        margin-bottom: 0;
+        padding: 28px 18px;
+        border-radius: 16px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+        background: #111;
+        color: #fff;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        overflow: hidden;
+      }
+      .paintings-row .program-image {
+        width: 100%;
+        height: 340px;
+        object-fit: cover;
+        border-radius: 12px;
+        margin-bottom: 24px;
+      }
+      .paintings-row .program-title {
+        font-size: 2.2rem;
+        margin-bottom: 18px;
+        text-align: center;
+        color: #fff;
+      }
+      .paintings-row .program-text {
+        font-size: 1.2rem;
+        margin-bottom: 0;
+        text-align: center;
+        color: #fff;
+        max-height: 140px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      @media (max-width: 600px) {
+        .paintings-row .program-card {
+          width: 98vw;
+          max-width: 99vw;
+          min-width: 0;
+          height: 260px;
+          padding: 10px 4px;
+        }
+        .paintings-row .program-image {
+          height: 120px;
+        }
+        .paintings-row .program-title {
+          font-size: 1.1rem;
+        }
+        .paintings-row .program-text {
+          font-size: 0.95rem;
+          max-height: 40px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -454,9 +520,9 @@
       </div>
     </section>
 
-    <!-- Program -->
+    <!-- Paintings -->
     <section class="section">
-      <div class="container">
+      <div class="container paintings-row">
         <div class="program-card">
           <img
             src="static/images/image_1.jpg"
@@ -471,51 +537,7 @@
             тишину, кто-то — новые впечатления. Объединяет всех лишь желание
             прикоснуться к чему-то большему, чем повседневность.
           </p>
-          <a href="catalog.html" class="registration-button"
-            >Перейти к каталогу</a
-          >
         </div>
-
-        <div class="program-card">
-          <img
-            src="static/images/image_2.jpg"
-            alt="Картины"
-            class="program-image"
-          />
-          <h2 class="program-title">Картины, которые звучат душой и сердцем</h2>
-          <p class="program-text">
-            Создавая выставку, я мечтал, чтобы картины не только видели, но и
-            слышали. У каждой работы есть своя музыкальная аура, дополняющая её
-            настроение.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Events -->
-    <section class="events">
-      <div class="container">
-        <h2 class="events-title">EVENTS</h2>
-        <div class="event-card">
-          <img
-            src="static/images/0uca8lzlxgij42a54jva3y7294vnh6d3.jpg"
-            alt="Культурный слой"
-            class="event-image"
-          />
-          <h3 class="event-title">Культурный слой</h3>
-          <p class="program-text">
-            Выставка «Культурный слой» охватывает художественную жизнь Тюмени с
-            2000 по 2024 годы и демонстрирует, как культурные потоки
-            переплетаются друг с другом.
-          </p>
-          <p class="event-date">21.08.2024 - 19.10.2025</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Paintings -->
-    <section class="section">
-      <div class="container">
         <div class="program-card">
           <img
             src="static/images/photo_2025-06-04_20-43-46.jpg"
@@ -524,11 +546,11 @@
           />
           <h2 class="program-title">conclav</h2>
           <p class="program-text">
-            9000Р<br />
+            18000Р<br />
             100Х150<br />
             Власова А.А.<br />
-            Академизм
-          </p>
+            Академизм<br />
+          </p>  
         </div>
       </div>
     </section>
